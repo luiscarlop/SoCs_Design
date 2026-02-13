@@ -1,23 +1,66 @@
-# macOS
+# ==========================================
+# Archivos del Sistema Operativo (Mac/Windows)
+# ==========================================
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
 ._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
 .Spotlight-V100
-.TemporaryItems
 .Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+Thumbs.db
+ehthumbs.db
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+# ==========================================
+# Carpetas basura generadas por Xilinx ISE
+# ==========================================
+iseconfig/
+xst/
+_xmsgs/
+isim/
+xlnx_auto_0_xdb/
+
+# ==========================================
+# Archivos de Síntesis, Implementación y Logs
+# ==========================================
+*.bgn
+*.bld
+*.cmd_log
+*.drc
+*.gise
+*.lso
+*.map
+*.mrp
+*.ncd
+*.ngc
+*.ngm
+*.ngr
+*.pad
+*.par
+*.pcf
+*.prj
+*.ptwx
+*.stx
+*.syr
+*.twr
+*.twx
+*.unroutes
+*.ut
+*.xpi
+*.xst
+*.log
+
+# ==========================================
+# Archivos de Simulación
+# ==========================================
+*.isim
+*.wdb
+
+# ==========================================
+# Archivos Binarios (¡Opcional pero recomendado!)
+# ==========================================
+*.bit
+
+# ==========================================
+# Temporales de editores
+# ==========================================
+*~
+*.swp
+*.bak

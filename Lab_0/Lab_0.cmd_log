@@ -1,0 +1,59 @@
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -i -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 
+xst -intstyle ise -ifn "C:/Xilinx/Projects/Lab_0/Lab_0.xst" -ofn "C:/Xilinx/Projects/Lab_0/Lab_0.syr" 
+ngdbuild -intstyle ise -dd _ngo -nt timestamp -uc Lab_0_ucf.ucf -p xc7z020-clg484-1 Lab_0.ngc Lab_0.ngd  
+map -intstyle ise -p xc7z020-clg484-1 -w -logic_opt off -ol high -t 1 -xt 0 -register_duplication off -r 4 -mt off -ir off -pr off -lc off -power off -o Lab_0_map.ncd Lab_0.ngd Lab_0.pcf 
+par -w -intstyle ise -ol high -mt off Lab_0_map.ncd Lab_0.ncd Lab_0.pcf 
+trce -intstyle ise -v 3 -s 1 -n 3 -fastpaths -xml Lab_0.twx Lab_0.ncd -o Lab_0.twr Lab_0.pcf -ucf Lab_0_ucf.ucf 
+bitgen -intstyle ise -f Lab_0.ut Lab_0.ncd 

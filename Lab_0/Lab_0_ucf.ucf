@@ -1,0 +1,26 @@
+# reloj
+NET clk	LOC = Y9   |IOSTANDARD=LVTTL;  # GCLK
+
+# reset
+NET "reset" LOC = "P16" | IOSTANDARD=LVTTL; 	#BTNC
+
+# enable
+NET actualiza LOC = N15 | IOSTANDARD=LVTTL; #BTNL
+
+#NET entrada<0>	LOC = F22 | IOSTANDARD=LVTTL;  	# SW0
+#NET entrada<1>	LOC = G22 | IOSTANDARD=LVTTL;  	# SW1
+#NET entrada<2>	LOC = H22 | IOSTANDARD=LVTTL;  	# SW2
+#NET entrada<3>	LOC = F21 | IOSTANDARD=LVTTL;  	# SW3
+#NET entrada<4>	LOC = H19 | IOSTANDARD=LVTTL;  	# SW4
+#NET entrada<5>	LOC = H18 | IOSTANDARD=LVTTL;  	# SW5
+#NET entrada<6>	LOC = H17 | IOSTANDARD=LVTTL;  	# SW6
+#NET entrada<7>	LOC = M15 | IOSTANDARD=LVTTL;  	# SW7
+
+NET ciclos<0>   LOC = T22  | IOSTANDARD=LVTTL;  # "LD0"
+NET ciclos<1>   LOC = T21  | IOSTANDARD=LVTTL;  # "LD1"
+NET ciclos<2>   LOC = U22  | IOSTANDARD=LVTTL;  # "LD2"
+NET ciclos<3>   LOC = U21  | IOSTANDARD=LVTTL;  # "LD3"
+NET ciclos<4>   LOC = V22  | IOSTANDARD=LVTTL;  # "LD4"
+NET ciclos<5>   LOC = W22  | IOSTANDARD=LVTTL;  # "LD5"
+NET ciclos<6>   LOC = U19  | IOSTANDARD=LVTTL;  # "LD6"
+NET ciclos<7>   LOC = U14  | IOSTANDARD=LVTTL;  # "LD7"

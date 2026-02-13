@@ -1,0 +1,8 @@
+INTSTYLE=ise
+INFILE=C:\Xilinx\Projects\Lab_0\Lab_0.ncd
+OUTFILE=C:\Xilinx\Projects\Lab_0\Lab_0.bit
+FAMILY=Zynq
+PART=xc7z020-1clg484
+WORKINGDIR=C:\Xilinx\Projects\Lab_0
+LICENSE=ISE
+USER_INFO=210682935_1777487889_210736740_008

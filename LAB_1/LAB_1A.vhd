@@ -19,6 +19,7 @@
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -30,13 +31,72 @@ use IEEE.STD_LOGIC_1164.ALL;
 --use UNISIM.VComponents.all;
 
 entity LAB_1A is
-    Port ( color_in : in  STD_LOGIC_VECTOR (11 downto 0);
-           color_out : out  STD_LOGIC_VECTOR (11 downto 0));
+    Port ( rgb_in : in  STD_LOGIC_VECTOR (11 downto 0);
+           rgb_out : out  STD_LOGIC_VECTOR (11 downto 0);
+           clk : in  STD_LOGIC;
+           reset : in  STD_LOGIC;
+           sync_h : out STD_LOGIC;
+           sync_v : out STD_LOGIC);
+
 end LAB_1A;
 
 architecture Behavioral of LAB_1A is
+    signal pixel : unsigned(9 downto 0);
+    signal line : unsigned(9 downto 0);
+    signal color_inhibit : STD_LOGIC;
+    signal inh_h : STD_LOGIC;
+    signal inh_v : STD_LOGIC;
 
 begin
+    process(clk, reset) -- Pixel counter
+        begin
+            if reset = '1' then
+                pixel <= (others => '0');
+            elsif (clk'event and clk = '1') then
+                if pixel = 793 then
+                    pixel <= (others => '0');
+                else
+                    pixel <= pixel + 1;
+                end if;
+            end if;
+        end process;
+
+    process(clk, reset) -- Line counter
+        begin
+            if reset = '1' then
+                line <= (others => '0');
+            elsif (clk'event and clk = '1') then
+                if pixel = 793 then
+                    if line = 527 then
+                        line <= (others => '0');
+                    else
+                        line <= line + 1;
+                    end if;
+                end if;
+            end if;
+        end process;
+
+    -- Sync signals logic
+    sync_h <= '1' when pixel >= 649 and pixel <= 747 else '0';
+    sync_v <= '1' when line >= 489 and line <= 491 else '0';
+
+    -- Color inhibit logic
+    inh_h <= '1' when (pixel >= 639) else '0';
+    inh_v <= '1' when (line >= 479) else '0';
+    color_inhibit <= inh_h or inh_v;
+
+    -- Register for output RGB values
+    process(clk)
+        begin
+            if (clk'event and clk = '1') then
+                if color_inhibit = '1' then
+                    rgb_out <= (others => '0');
+                else
+                    rgb_out <= rgb_in;
+                end if;
+            end if;
+        end process;
+
 
 
 end Behavioral;

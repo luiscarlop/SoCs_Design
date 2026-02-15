@@ -24,6 +24,7 @@ xlnx_auto_0_xdb/
 *.bld
 *.cmd_log
 *.drc
+*.html
 *.gise
 *.lso
 *.map
@@ -45,6 +46,8 @@ xlnx_auto_0_xdb/
 *.ut
 *.xpi
 *.xst
+*.xml
+*.xrpt
 *.log
 
 # ==========================================

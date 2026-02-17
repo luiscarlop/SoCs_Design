@@ -9,61 +9,24 @@ Thumbs.db
 ehthumbs.db
 
 # ==========================================
-# Carpetas basura generadas por Xilinx ISE
+# Carpetas de Xilinx ISE
 # ==========================================
 iseconfig/
-xst/
-_xmsgs/
-isim/
-xlnx_auto_0_xdb/
 
 # ==========================================
-# Archivos de Síntesis, Implementación y Logs
+# Ignore all files by default
 # ==========================================
-*.bgn
-*.bld
-*.cmd_log
-*.drc
-*.html
-*.gise
-*.lso
-*.map
-*.mrp
-*.ncd
-*.ngc
-*.ngm
-*.ngr
-*.pad
-*.par
-*.pcf
-*.prj
-*.ptwx
-*.stx
-*.syr
-*.twr
-*.twx
-*.unroutes
-*.ut
-*.xpi
-*.xst
-*.xml
-*.xrpt
-*.log
+*
 
 # ==========================================
-# Archivos de Simulación
+# Only keep these file types
 # ==========================================
-*.isim
-*.wdb
+!.gitignore
+!*.xise
+!*.vhd
+!*.ucf
 
 # ==========================================
-# Archivos Binarios (¡Opcional pero recomendado!)
+# Allow directories (so git can traverse them)
 # ==========================================
-*.bit
-
-# ==========================================
-# Temporales de editores
-# ==========================================
-*~
-*.swp
-*.bak
+!*/

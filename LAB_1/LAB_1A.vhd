@@ -81,8 +81,8 @@ begin
     sync_v <= '1' when line >= 489 and line <= 491 else '0';
 
     -- Color inhibit logic
-    inh_h <= '1' when (pixel >= 639) else '0';
-    inh_v <= '1' when (line >= 479) else '0';
+    inh_h <= '1' when (pixel >= 639 and pixel <= 792) else '0';
+    inh_v <= '1' when (line >= 479 and line <= 526) else '0';
     color_inhibit <= inh_h or inh_v;
 
     -- Register for output RGB values

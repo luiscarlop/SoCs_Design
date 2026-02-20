@@ -25,6 +25,7 @@ iseconfig/
 !*.xise
 !*.vhd
 !*.ucf
+!*.md
 
 # ==========================================
 # Allow directories (so git can traverse them)

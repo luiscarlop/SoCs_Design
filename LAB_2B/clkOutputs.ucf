@@ -1,0 +1,16 @@
+# reloj
+NET clk_in	        LOC = Y9    | IOSTANDARD=LVTTL;  # GCLK
+
+# reset
+NET "reset"         LOC = P16   | IOSTANDARD=LVTTL; 	#BTNC
+
+# clk outputs
+# PMOD JA [4:1]
+NET "clk_in_out"    LOC = Y11   | IOSTANDARD=LVTTL;  # Output for input clock measurement
+NET "clk_1"         LOC = AA11  | IOSTANDARD=LVTTL;
+NET "clk_2"         LOC = Y10   | IOSTANDARD=LVTTL;
+NET "clk_3"         LOC = AA19  | IOSTANDARD=LVTTL;
+
+# PMOD JB [2:1]
+NET "clk_4"         LOC = W12   | IOSTANDARD=LVTTL;
+NET "clk_5"         LOC = W11   | IOSTANDARD=LVTTL;

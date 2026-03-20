@@ -152,16 +152,15 @@ begin
             line_o => line_o
         );
 
-    rgb_out_process: process(clk_25MHz, reset)
+    rgb_out_process: process(reset, inhibColor, pixel_o, line_o, rgb_in)
     begin
         if reset = '1' then
             rgb_out <= C_BLACK;
-        elsif(clk_25MHz'event and clk_25MHz = '1') then
-            if inhibColor = '1' then
-                rgb_out <= C_BLACK;
-            else
-            -- TODO: Implement the out color of the following pixels:
-            -- 1. pixel (20, 20) -> Red
+        elsif inhibColor = '1' then
+            rgb_out <= C_BLACK;
+        else
+        -- TODO: Implement the out color of the following pixels:
+        -- 1. pixel (20, 20) -> Red
             -- 2. pixel (20, 100) -> Green
             -- 3. pixel (100, 20) -> Blue
             -- 4. pixel (100, 100) -> Yellow
@@ -171,25 +170,27 @@ begin
             -- 7. Show a white square of 21x21 pixels in the center of the screen (from pixel (310, 230) to pixel (330, 250))
 
             -- 8. Show each corner of the scree in white (1 pixel in each corner)
-                if pixel_o = 20 and line_o = 20 then
-                    rgb_out <= C_RED;
-                elsif pixel_o = 20 and line_o = 100 then
-                    rgb_out <= C_GREEN;
-                elsif pixel_o = 100 and line_o = 20 then
-                    rgb_out <= C_BLUE;
-                elsif pixel_o = 100 and line_o = 100 then
-                    rgb_out <= C_YELLOW;
-                elsif line_o = 200 then
-                    rgb_out <= C_CYAN;
-                elsif pixel_o = 400 then
-                    rgb_out <= C_ORANGE;
-                elsif pixel_o >= 310 and pixel_o <= 330 and line_o >= 230 and line_o <= 250 then
-                    rgb_out <= C_WHITE;
-                elsif (pixel_o = 0 and line_o = 0) or (pixel_o = 0 and line_o = 527) or (pixel_o = 793 and line_o = 0) or (pixel_o = 793 and line_o = 527) then
-                    rgb_out <= C_WHITE;
-                else
-                    rgb_out <= rgb_in;
-                end if;
+            if pixel_o = 20 and line_o = 20 then
+                rgb_out <= C_RED;
+            elsif pixel_o = 20 and line_o = 100 then
+                rgb_out <= C_GREEN;
+            elsif pixel_o = 100 and line_o = 20 then
+                rgb_out <= C_BLUE;
+            elsif pixel_o = 100 and line_o = 100 then
+                rgb_out <= C_YELLOW;
+            elsif line_o = 200 then
+                rgb_out <= C_CYAN;
+            elsif pixel_o = 400 then
+                rgb_out <= C_ORANGE;
+            elsif pixel_o >= 310 and pixel_o <= 330 and line_o >= 230 and line_o <= 250 then
+                rgb_out <= C_WHITE;
+            elsif (line_o = 0   and pixel_o = 0  ) or   -- top-left
+                    (line_o = 0   and pixel_o = 639) or   -- top-right
+                    (line_o = 479 and pixel_o = 0  ) or   -- bottom-left
+                    (line_o = 479 and pixel_o = 639) then -- bottom-right
+                rgb_out <= C_WHITE;
+            else
+                rgb_out <= rgb_in;
             end if;
         end if;
     end process;

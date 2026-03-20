@@ -83,13 +83,33 @@ process(clk, reset) -- Pixel counter
             end if;
         end process;
 
-    -- Sync signals logic
-    sync_h <= '0' when pixel_cnt >= 649 and pixel_cnt <= 747 else '1';
-    sync_v <= '0' when line_cnt >= 489 and line_cnt <= 491 else '1';
+        -- Sync signals logic
+
+        -- Combinational logic. Leads to 1 clock cycle delay
+        -- sync_h <= '0' when pixel_cnt >= 649 and pixel_cnt <= 747 else '1';
+        -- sync_v <= '0' when line_cnt >= 489 and line_cnt <= 491 else '1';
+    process(clk, reset)
+    begin
+        if reset = '1' then
+            sync_h <= '1';
+            sync_v <= '1';
+        elsif (clk'event and clk = '1') then
+            if pixel_cnt >= 649 and pixel_cnt <= 747 then
+                sync_h <= '0';
+            else
+                sync_h <= '1';
+            end if;
+            if line_cnt >= 489 and line_cnt <= 491 then
+                sync_v <= '0';
+            else
+                sync_v <= '1';
+            end if;
+        end if;
+    end process;
 
     -- Color inhibit logic
-    inh_h <= '1' when (pixel_cnt >= 639 and pixel_cnt <= 792) else '0';
-    inh_v <= '1' when (line_cnt >= 479 and line_cnt <= 526) else '0';
+    inh_h <= '1' when (pixel_cnt >= 640 and pixel_cnt <= 792) else '0';
+    inh_v <= '1' when (line_cnt >= 480 and line_cnt <= 526) else '0';
     inhibColor <= inh_h or inh_v;
 
     -- Optional counter outputs controlled by generics.

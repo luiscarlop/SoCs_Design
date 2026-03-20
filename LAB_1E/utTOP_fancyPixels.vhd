@@ -95,7 +95,7 @@ BEGIN
       reset <= '0';	
 
       -- insert stimulus here
-      rgb_in <= (others => '0');
+      rgb_in <= "000000000001";
 
       wait;
    end process;

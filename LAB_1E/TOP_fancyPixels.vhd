@@ -67,8 +67,8 @@ architecture Behavioral of TOP_fancyPixels is
     signal pixel_o : unsigned(9 downto 0);
     signal line_o : unsigned(9 downto 0);
 
-    constant C_BLACK  : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
-    constant C_WHITE  : STD_LOGIC_VECTOR(11 downto 0) := "111111111111";
+    constant C_BLACK  : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+    constant C_WHITE  : STD_LOGIC_VECTOR(11 downto 0) := (others => '1');
     constant C_RED    : STD_LOGIC_VECTOR(11 downto 0) := "111100000000";
     constant C_GREEN  : STD_LOGIC_VECTOR(11 downto 0) := "000011110000";
     constant C_BLUE   : STD_LOGIC_VECTOR(11 downto 0) := "000000001111";

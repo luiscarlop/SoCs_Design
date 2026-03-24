@@ -34,6 +34,7 @@ use UNISIM.VComponents.all;
 entity TOP_ROMPixelArt is
     Port ( clk : in  STD_LOGIC;
            reset : in  STD_LOGIC;
+           selector : in STD_LOGIC; -- BTN8 to switch between sprites
            sync_h : out  STD_LOGIC;
            sync_v : out  STD_LOGIC;
            rgb_out : out  STD_LOGIC_VECTOR (11 downto 0)
@@ -66,6 +67,9 @@ architecture Behavioral of TOP_ROMPixelArt is
                data_o : out unsigned(data_width-1 downto 0));
     end component;
 
+    -- increment the number of bits if needed to select more sprites
+    signal selected_sprite : unsigned(0 downto 0) := (others => '0'); -- 1 bits to select up to 2 sprites
+
     signal CLKIN1 : STD_LOGIC;
     signal CLKOUT0 : STD_LOGIC;
     signal CLKFBIN : STD_LOGIC;
@@ -76,14 +80,25 @@ architecture Behavioral of TOP_ROMPixelArt is
     signal line_o : unsigned(9 downto 0);
 
     signal rom_addr : unsigned(6 downto 0); -- 7 bits for 128 words
-    -- TODO [ ]: Drive rom_addr from pixel_o and line_o:
-    --          addr = line_o * C_SPRITE_W + pixel_o  (when inside the sprite window)
+    signal rom_data_cat : unsigned(11 downto 0); -- 12 bits for RGB color
+    signal rom_data_heart : unsigned(11 downto 0); -- 12 bits for RGB color
 
-    -- TODO [ ]: Declare one data signal per ROM instance to avoid multiple-driver conflict
+    -- TODO [x]: Declare one data signal per ROM instance to avoid multiple-driver conflict
     --          e.g. rom_data_cat, rom_data_heart instead of a single rom_data
-    signal rom_data : unsigned(11 downto 0); -- 12 bits for RGB color
+    constant C_BLACK  : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+    constant C_WHITE  : STD_LOGIC_VECTOR(11 downto 0) := (others => '1');
 
 begin
+    --   row = line_o  - Y0       (Y0 = 236, top edge of sprite window)
+    --   col = pixel_o - X0 + 1   (X0 = 316, +1 for pre-fetch: compensates the 1-cycle ROM latency)
+    --   addr = row * C_SPRITE_W + col
+    --   Guard: pixel_o >= 315 (one pixel before window) so ROM has data ready at pixel 316
+    rom_addr <= to_unsigned(to_integer(line_o - 236) * C_SPRITE_W +
+                            to_integer(pixel_o - 315), 7)
+        when pixel_o >= 314 and pixel_o <= 322 and
+             line_o  >= 236 and line_o  <= 244
+        else (others => '0');
+
     Module_MMCM: MMCME2_BASE
     generic map (
         BANDWIDTH => "OPTIMIZED",  -- Jitter programming (OPTIMIZED, HIGH, LOW)
@@ -144,9 +159,13 @@ begin
         I => CLKFBOUT  -- 1-bit input: Clock input
     );
 
-    -- TODO [ ]: Set G_EXPOSE_PIXEL => TRUE and G_EXPOSE_LINE => TRUE so that
+    -- TODO [x]: Set G_EXPOSE_PIXEL => TRUE and G_EXPOSE_LINE => TRUE so that
     --          pixel_o and line_o carry real counter values (currently both output 0)
     Module_VGA: VGA
+        generic map (
+            G_EXPOSE_PIXEL => TRUE,
+            G_EXPOSE_LINE => TRUE
+        )
         Port map (
             enable => '1',
             clk => clk_25MHz,
@@ -164,11 +183,8 @@ begin
         )
         Port map (
             clk    => clk_25MHz,
-            -- TODO [ ]: Replace 'addr' with the declared signal 'rom_addr'
-            addr   => addr,
-            -- TODO [ ]: Replace 'data_o' with a dedicated signal e.g. 'rom_data_cat'
-            --          to avoid multiple-driver conflict with Module_ROM_heart
-            data_o => data_o
+            addr   => rom_addr,
+            data_o => rom_data_cat
         );
 
     Module_ROM_heart: ROM_memory
@@ -177,17 +193,38 @@ begin
         )
         Port map (
             clk    => clk_25MHz,
-            -- TODO [ ]: Replace 'addr' with the declared signal 'rom_addr'
-            addr   => addr,
-            -- TODO [ ]: Replace 'data_o' with a dedicated signal e.g. 'rom_data_heart'
-            --          to avoid multiple-driver conflict with Module_ROM_calico_cat
-            data_o => data_o
+            addr   => rom_addr,
+            data_o => rom_data_heart
         );
 
-    -- TODO [ ]: Add combinatorial rgb_out process:
-    --          if inhibColor = '1' → black
-    --          elsif pixel is inside the sprite window → std_logic_vector(rom_data_cat or rom_data_heart)
-    --          else → black
+    sprite_selector_process: process(clk) -- Uses BTN8 to switch between sprites
+        begin
+            if (clk'event and clk = '1') then
+                if selector = '1' then
+                    selected_sprite <= selected_sprite + 1;
+                end if;
+            end if;
+        end process;
 
+    rgb_out_process: process(clk, reset)
+        begin
+            if reset = '1' then
+                rgb_out <= C_BLACK;
+            elsif (clk'event and clk = '1') then
+                if inhibColor = '1' then
+                    rgb_out <= C_BLACK;
+                else
+                    if  pixel_o >= 315 and pixel_o <= 323 and 
+                        line_o >= 236 and line_o <= 244 then
+                            -- TODO [ ]: Drive rgb_out with the corresponding ROM data depending on which sprite is being displayed
+                            case selected_sprite is
+                                when "0" => rgb_out <= std_logic_vector(rom_data_cat);
+                                when "1" => rgb_out <= std_logic_vector(rom_data_heart);
+                                when others => rgb_out <= C_BLACK;
+                            end case;
+                    end if;
+                end if;
+            end if;
+        end process;
 end Behavioral;
 

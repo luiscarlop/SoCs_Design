@@ -116,9 +116,8 @@ package ROM_pkg is
         x"000", x"000", x"000", x"000", x"000", x"000", x"000", x"000", x"000"
     );
 
-    -- TODO [ ]: Replace SPRITE_SWORD with SPRITE_CAT_CALICO (SPRITE_SWORD is not declared)
-    --          and update the range to (0 to 2) once all three sprites are in the bank
-    constant SPRITE_BANK : sprite_bank_t(0 to 1) := (SPRITE_SWORD, SPRITE_HEART);
+    -- TODO [x]: Replace SPRITE_SWORD with SPRITE_CAT_CALICO (SPRITE_SWORD is not declared)
+    constant SPRITE_BANK : sprite_bank_t(0 to 1) := (SPRITE_CAT_CALICO, SPRITE_HEART);
 end ROM_pkg;
 
 package body ROM_pkg is

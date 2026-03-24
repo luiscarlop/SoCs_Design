@@ -2,10 +2,10 @@
 -- Company: Polytechnic University of Cartagena
 -- Engineer: Luis Carretero Lopez
 -- 
--- Create Date:    13:03:36 03/10/2026 
+-- Create Date:    09:33:23 03/24/2026 
 -- Design Name: 
--- Module Name:    TOP_fancyPixels - Behavioral 
--- Project Name:   Practice 1E: Fancy Pixels
+-- Module Name:    TOP_ROMPixelArt - Behavioral 
+-- Project Name:   ROM Pixel Art
 -- Target Devices: 
 -- Tool versions: 
 -- Description: 
@@ -18,10 +18,9 @@
 --
 ----------------------------------------------------------------------------------
 library IEEE;
-library UNISIM;
-use UNISIM.VComponents.all;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.numeric_std.all;
+use work.ROM_pkg.all;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -29,20 +28,19 @@ use IEEE.numeric_std.all;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
+library UNISIM;
+use UNISIM.VComponents.all;
 
-entity TOP_fancyPixels is
+entity TOP_ROMPixelArt is
     Port ( clk : in  STD_LOGIC;
            reset : in  STD_LOGIC;
-           rgb_in : in  STD_LOGIC_VECTOR (11 downto 0);
-           rgb_out : out  STD_LOGIC_VECTOR (11 downto 0);
            sync_h : out  STD_LOGIC;
-           sync_v : out  STD_LOGIC
+           sync_v : out  STD_LOGIC;
+           rgb_out : out  STD_LOGIC_VECTOR (11 downto 0)
            );
-end TOP_fancyPixels;
+end TOP_ROMPixelArt;
 
-architecture Behavioral of TOP_fancyPixels is
+architecture Behavioral of TOP_ROMPixelArt is
     component VGA
         Generic (
             G_EXPOSE_PIXEL : boolean := false;
@@ -58,6 +56,16 @@ architecture Behavioral of TOP_fancyPixels is
                line_o : out unsigned(9 downto 0));
     end component;
 
+    component ROM_memory
+        Generic (SPRITE_ID : integer := 0;
+                addr_width : integer := 7; -- 7 bits for 128 words
+                data_width : integer := 12 -- 12 bits for RGB color
+                );
+        Port ( clk : in STD_LOGIC;
+               addr : in unsigned(addr_width-1 downto 0); -- addr_width bits for 2^addr_width words
+               data_o : out unsigned(data_width-1 downto 0));
+    end component;
+
     signal CLKIN1 : STD_LOGIC;
     signal CLKOUT0 : STD_LOGIC;
     signal CLKFBIN : STD_LOGIC;
@@ -67,14 +75,14 @@ architecture Behavioral of TOP_fancyPixels is
     signal pixel_o : unsigned(9 downto 0);
     signal line_o : unsigned(9 downto 0);
 
-    constant C_BLACK  : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
-    constant C_WHITE  : STD_LOGIC_VECTOR(11 downto 0) := "111111111111";
-    constant C_RED    : STD_LOGIC_VECTOR(11 downto 0) := "111100000000";
-    constant C_GREEN  : STD_LOGIC_VECTOR(11 downto 0) := "000011110000";
-    constant C_BLUE   : STD_LOGIC_VECTOR(11 downto 0) := "000000001111";
-    constant C_YELLOW : STD_LOGIC_VECTOR(11 downto 0) := "111111110000";
-    constant C_CYAN   : STD_LOGIC_VECTOR(11 downto 0) := "000011111111";
-    constant C_ORANGE : STD_LOGIC_VECTOR(11 downto 0) := "111100001111";
+    signal rom_addr : unsigned(6 downto 0); -- 7 bits for 128 words
+    -- TODO [ ]: Drive rom_addr from pixel_o and line_o:
+    --          addr = line_o * C_SPRITE_W + pixel_o  (when inside the sprite window)
+
+    -- TODO [ ]: Declare one data signal per ROM instance to avoid multiple-driver conflict
+    --          e.g. rom_data_cat, rom_data_heart instead of a single rom_data
+    signal rom_data : unsigned(11 downto 0); -- 12 bits for RGB color
+
 begin
     Module_MMCM: MMCME2_BASE
     generic map (
@@ -136,11 +144,9 @@ begin
         I => CLKFBOUT  -- 1-bit input: Clock input
     );
 
+    -- TODO [ ]: Set G_EXPOSE_PIXEL => TRUE and G_EXPOSE_LINE => TRUE so that
+    --          pixel_o and line_o carry real counter values (currently both output 0)
     Module_VGA: VGA
-        generic map (
-            G_EXPOSE_PIXEL => TRUE,
-            G_EXPOSE_LINE => TRUE
-        )
         Port map (
             enable => '1',
             clk => clk_25MHz,
@@ -152,49 +158,36 @@ begin
             line_o => line_o
         );
 
-    -- TODO [ ]: Make the output registered with clock (clk sync)
-    rgb_out_process: process(reset, inhibColor, pixel_o, line_o, rgb_in)
-    begin
-        if reset = '1' then
-            rgb_out <= C_BLACK;
-        elsif inhibColor = '1' then
-            rgb_out <= C_BLACK;
-        else
-        -- TODO [x]: Implement the out color of the following pixels:
-        -- 1. pixel (20, 20) -> Red
-            -- 2. pixel (20, 100) -> Green
-            -- 3. pixel (100, 20) -> Blue
-            -- 4. pixel (100, 100) -> Yellow
-            -- 5. pixel (100,:) -> Cyan
-            -- 6. pixel (:,400) -> Orange
+    Module_ROM_calico_cat: ROM_memory
+        generic map (
+            SPRITE_ID => 0
+        )
+        Port map (
+            clk    => clk_25MHz,
+            -- TODO [ ]: Replace 'addr' with the declared signal 'rom_addr'
+            addr   => addr,
+            -- TODO [ ]: Replace 'data_o' with a dedicated signal e.g. 'rom_data_cat'
+            --          to avoid multiple-driver conflict with Module_ROM_heart
+            data_o => data_o
+        );
 
-            -- 7. Show a white square of 21x21 pixels in the center of the screen (from pixel (310, 230) to pixel (330, 250))
+    Module_ROM_heart: ROM_memory
+        generic map (
+            SPRITE_ID => 1
+        )
+        Port map (
+            clk    => clk_25MHz,
+            -- TODO [ ]: Replace 'addr' with the declared signal 'rom_addr'
+            addr   => addr,
+            -- TODO [ ]: Replace 'data_o' with a dedicated signal e.g. 'rom_data_heart'
+            --          to avoid multiple-driver conflict with Module_ROM_calico_cat
+            data_o => data_o
+        );
 
-            -- 8. Show each corner of the scree in white (1 pixel in each corner)
-            if pixel_o = 20 and line_o = 20 then
-                rgb_out <= C_RED;
-            elsif pixel_o = 20 and line_o = 100 then
-                rgb_out <= C_GREEN;
-            elsif pixel_o = 100 and line_o = 20 then
-                rgb_out <= C_BLUE;
-            elsif pixel_o = 100 and line_o = 100 then
-                rgb_out <= C_YELLOW;
-            elsif line_o = 200 then
-                rgb_out <= C_CYAN;
-            elsif pixel_o = 400 then
-                rgb_out <= C_ORANGE;
-            elsif pixel_o >= 310 and pixel_o <= 330 and line_o >= 230 and line_o <= 250 then
-                rgb_out <= C_WHITE;
-            elsif (line_o = 0   and pixel_o = 0  ) or   -- top-left
-                    (line_o = 0   and pixel_o = 639) or   -- top-right
-                    (line_o = 479 and pixel_o = 0  ) or   -- bottom-left
-                    (line_o = 479 and pixel_o = 639) then -- bottom-right
-                rgb_out <= C_WHITE;
-            else
-                rgb_out <= rgb_in;
-            end if;
-        end if;
-    end process;
+    -- TODO [ ]: Add combinatorial rgb_out process:
+    --          if inhibColor = '1' → black
+    --          elsif pixel is inside the sprite window → std_logic_vector(rom_data_cat or rom_data_heart)
+    --          else → black
 
 end Behavioral;
 

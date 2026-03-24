@@ -28,9 +28,18 @@ iseconfig/
 !*.md
 
 # ==========================================
+# Python
+# ==========================================
+!*.py
+!requirements.txt
+
+# ==========================================
 # Allow directories (so git can traverse them)
 # ==========================================
 !*/
+
+# Exclude the virtual environment directory (must come after !*/)
+.venv/
 
 # ==========================================
 # Ignore CLAUDE.md

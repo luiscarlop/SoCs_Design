@@ -34,7 +34,7 @@ use UNISIM.VComponents.all;
 entity TOP_ROMPixelArt is
     Port ( clk : in  STD_LOGIC;
            reset : in  STD_LOGIC;
-           selector : in STD_LOGIC; -- BTN8 to switch between sprites
+           rgb_in : in  STD_LOGIC_VECTOR (11 downto 0); -- bit 8 (BTNL) also drives sprite selector
            sync_h : out  STD_LOGIC;
            sync_v : out  STD_LOGIC;
            rgb_out : out  STD_LOGIC_VECTOR (11 downto 0)
@@ -67,8 +67,15 @@ architecture Behavioral of TOP_ROMPixelArt is
                data_o : out unsigned(data_width-1 downto 0));
     end component;
 
+    component antiBouncesSTM
+        Port ( clk : in STD_LOGIC;
+               reset : in STD_LOGIC;
+               input : in STD_LOGIC;
+               output : out STD_LOGIC);
+    end component;
+
     -- increment the number of bits if needed to select more sprites
-    signal selected_sprite : unsigned(0 downto 0) := (others => '0'); -- 1 bits to select up to 2 sprites
+    signal selected_sprite : unsigned(2 downto 0) := (others => '0'); -- 3 bits to select up to 8 sprites
 
     signal CLKIN1 : STD_LOGIC;
     signal CLKOUT0 : STD_LOGIC;
@@ -81,7 +88,13 @@ architecture Behavioral of TOP_ROMPixelArt is
 
     signal rom_addr : unsigned(6 downto 0); -- 7 bits for 128 words
     signal rom_data_cat : unsigned(11 downto 0); -- 12 bits for RGB color
-    signal rom_data_heart : unsigned(11 downto 0); -- 12 bits for RGB color
+    signal rom_data_cat_black : unsigned(11 downto 0); -- 12 bits for RGB color
+    signal rom_data_instagram_detailed : unsigned(11 downto 0); -- 12 bits for RGB color
+    signal rom_data_cat_white : unsigned(11 downto 0); -- 12 bits for RGB color
+    signal rom_data_alpaca : unsigned(11 downto 0); -- 12 bits for RGB color
+    signal rom_data_github_big : unsigned(11 downto 0); -- 12 bits for RGB color
+
+    signal selector_debounced : STD_LOGIC;
 
     -- TODO [x]: Declare one data signal per ROM instance to avoid multiple-driver conflict
     --          e.g. rom_data_cat, rom_data_heart instead of a single rom_data
@@ -93,10 +106,10 @@ begin
     --   col = pixel_o - X0 + 1   (X0 = 316, +1 for pre-fetch: compensates the 1-cycle ROM latency)
     --   addr = row * C_SPRITE_W + col
     --   Guard: pixel_o >= 315 (one pixel before window) so ROM has data ready at pixel 316
-    rom_addr <= to_unsigned(to_integer(line_o - 236) * C_SPRITE_W +
-                            to_integer(pixel_o - 315), 7)
+    rom_addr <= to_unsigned(to_integer(line_o - 235) * C_SPRITE_W +
+                            to_integer(pixel_o - 314), 7)
         when pixel_o >= 314 and pixel_o <= 322 and
-             line_o  >= 236 and line_o  <= 244
+             line_o  >= 235 and line_o  <= 243
         else (others => '0');
 
     Module_MMCM: MMCME2_BASE
@@ -187,41 +200,93 @@ begin
             data_o => rom_data_cat
         );
 
-    Module_ROM_heart: ROM_memory
+    Module_ROM_cat_black: ROM_memory
         generic map (
             SPRITE_ID => 1
         )
         Port map (
             clk    => clk_25MHz,
             addr   => rom_addr,
-            data_o => rom_data_heart
+            data_o => rom_data_cat_black
         );
 
-    sprite_selector_process: process(clk) -- Uses BTN8 to switch between sprites
+    Module_ROM_cat_white: ROM_memory
+        generic map (
+            SPRITE_ID => 2
+        )
+        Port map (
+            clk    => clk_25MHz,
+            addr   => rom_addr,
+            data_o => rom_data_cat_white
+        );
+
+    Module_ROM_alpaca: ROM_memory
+        generic map (
+            SPRITE_ID => 3
+        )
+        Port map (
+            clk    => clk_25MHz,
+            addr   => rom_addr,
+            data_o => rom_data_alpaca
+        );
+
+    Module_ROM_github_big: ROM_memory
+        generic map (
+            SPRITE_ID => 4
+        )
+        Port map (
+            clk    => clk_25MHz,
+            addr   => rom_addr,
+            data_o => rom_data_github_big
+        );
+    Module_ROM_instagram_detailed: ROM_memory
+        generic map (
+            SPRITE_ID => 5
+        )
+        Port map (
+            clk    => clk_25MHz,
+            addr   => rom_addr,
+            data_o => rom_data_instagram_detailed
+        );
+
+    Module_antiBouncesSTM: antiBouncesSTM
+        Port map (
+            clk => clk_25MHz,
+            reset => reset,
+            input => rgb_in(8),
+            output => selector_debounced
+        );
+
+    sprite_selector_process: process(clk_25MHz) -- Uses BTN8 to switch between sprites
         begin
-            if (clk'event and clk = '1') then
-                if selector = '1' then
+            if (clk_25MHz'event and clk_25MHz = '1') then
+                if selector_debounced = '1' then
                     selected_sprite <= selected_sprite + 1;
                 end if;
             end if;
         end process;
 
-    rgb_out_process: process(clk, reset)
+    rgb_out_process: process(clk_25MHz, reset)
         begin
             if reset = '1' then
                 rgb_out <= C_BLACK;
-            elsif (clk'event and clk = '1') then
+            elsif (clk_25MHz'event and clk_25MHz = '1') then
                 if inhibColor = '1' then
-                    rgb_out <= C_BLACK;
+                    rgb_out <= rgb_in;
                 else
                     if  pixel_o >= 315 and pixel_o <= 323 and 
-                        line_o >= 236 and line_o <= 244 then
-                            -- TODO [ ]: Drive rgb_out with the corresponding ROM data depending on which sprite is being displayed
+                        line_o >= 235 and line_o <= 243 then
                             case selected_sprite is
                                 when "0" => rgb_out <= std_logic_vector(rom_data_cat);
-                                when "1" => rgb_out <= std_logic_vector(rom_data_heart);
+                                when "1" => rgb_out <= std_logic_vector(rom_data_cat_black);
+                                when "2" => rgb_out <= std_logic_vector(rom_data_cat_white);
+                                when "3" => rgb_out <= std_logic_vector(rom_data_alpaca);
+                                when "4" => rgb_out <= std_logic_vector(rom_data_github_big);
+                                when "5" => rgb_out <= std_logic_vector(rom_data_instagram_detailed);
                                 when others => rgb_out <= C_BLACK;
                             end case;
+                    else
+                        rgb_out <= rgb_in;
                     end if;
                 end if;
             end if;

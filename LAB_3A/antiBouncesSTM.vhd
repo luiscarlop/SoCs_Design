@@ -68,7 +68,7 @@ begin
         end case;
     end process;
 
-    counter_process: process(state, clk)
+    counter_process: process(clk)
     begin
         if (clk'event and clk = '1') then
             if state = COUNTING then

@@ -256,11 +256,12 @@ begin
         Port map (
             clk => clk_25MHz,
             reset => reset,
-            input => rgb_in(8),
+            input => rgb_in(4),
             output => selector_debounced
         );
 
-    sprite_selector_process: process(clk_25MHz) -- Uses BTN8 to switch between sprites
+    sprite_selector_process: process(clk_25MHz, reset) -- Uses SW4 to switch between sprites
+        variable sel_prev : std_logic := '0';
         begin
             if (clk_25MHz'event and clk_25MHz = '1') then
                 if selector_debounced = '1' then
@@ -270,6 +271,7 @@ begin
                         selected_sprite <= selected_sprite + 1;
                     end if;
                 end if;
+                sel_prev := selector_debounced;
             end if;
         end process;
 
@@ -279,7 +281,7 @@ begin
                 rgb_out <= C_BLACK;
             elsif (clk_25MHz'event and clk_25MHz = '1') then
                 if inhibColor = '1' then
-                    rgb_out <= rgb_in;
+                    rgb_out <= C_BLACK;
                 else
                     if  pixel_o >= 315 and pixel_o <= 323 and 
                         line_o >= 235 and line_o <= 243 then

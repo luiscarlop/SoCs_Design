@@ -256,11 +256,11 @@ begin
         Port map (
             clk => clk_25MHz,
             reset => reset,
-            input => rgb_in(4),
+            input => rgb_in(8),
             output => selector_debounced
         );
 
-    sprite_selector_process: process(clk_25MHz, reset) -- Uses SW4 to switch between sprites
+    sprite_selector_process: process(clk_25MHz, reset) -- Uses BTNL to switch between sprites
         variable sel_prev : std_logic := '0';
         begin
             if (clk_25MHz'event and clk_25MHz = '1') then

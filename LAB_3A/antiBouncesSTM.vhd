@@ -1,87 +1,72 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    15:43:38 03/25/2026 
--- Design Name: 
--- Module Name:    antiBouncesSTM - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
---
+-- Module Name:    antiBouncesSTM - Behavioral
+-- Description:    Debounce STM with 20ms hold timer.
+--                 Outputs a single 1-cycle pulse after input is stable HIGH
+--                 for DEBOUNCE_TIME cycles. Ignores re-presses until release.
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
+use IEEE.NUMERIC_STD.ALL;
 
 entity antiBouncesSTM is
-    Port ( clk : in  STD_LOGIC;
-           reset : in  STD_LOGIC;
-           input : in  STD_LOGIC;
-           output : out  STD_LOGIC);
+    Port ( clk    : in  STD_LOGIC;
+           reset  : in  STD_LOGIC;
+           input  : in  STD_LOGIC;
+           output : out STD_LOGIC);
 end antiBouncesSTM;
 
 architecture Behavioral of antiBouncesSTM is
 
-    type states_t is (IDLE, EDGE, ENABLED);
-    signal state, next_state : states_t;
+    -- 20ms at 25MHz = 500,000 cycles -> 20-bit counter
+    constant DEBOUNCE_TIME : integer := 500000;
+
+    type states_t is (IDLE, COUNTING, PULSE, WAIT_RELEASE);
+    signal state : states_t := IDLE;
+
+    signal counter : integer range 0 to DEBOUNCE_TIME := 0;
 
 begin
+
     process(clk, reset)
     begin
         if reset = '1' then
-            state <= IDLE;
+            state   <= IDLE;
+            counter <= 0;
+            output  <= '0';
         elsif (clk'event and clk = '1') then
-            state <= next_state;
+            output <= '0'; -- default: no pulse
+
+            case state is
+                when IDLE =>
+                    if input = '1' then
+                        counter <= 0;
+                        state   <= COUNTING;
+                    end if;
+
+                when COUNTING =>
+                    if input = '0' then
+                        -- bounced, restart
+                        state   <= IDLE;
+                        counter <= 0;
+                    elsif counter = DEBOUNCE_TIME - 1 then
+                        -- stable for 20ms: emit pulse
+                        state   <= PULSE;
+                        counter <= 0;
+                    else
+                        counter <= counter + 1;
+                    end if;
+
+                when PULSE =>
+                    output <= '1';  -- single cycle pulse
+                    state  <= WAIT_RELEASE;
+
+                when WAIT_RELEASE =>
+                    if input = '0' then
+                        state <= IDLE;
+                    end if;
+
+            end case;
         end if;
     end process;
 
-    output_process: process(state)
-    begin
-        case state is
-            when IDLE       => output <= '0';
-            when EDGE       => output <= '1';
-            when ENABLED    => output <= '1';
-        end case;
-    end process;
-
-    next_state_process: process(state, input)
-    begin
-        case state is
-            when IDLE =>
-                if input = '1' then
-                    next_state <= EDGE;
-                else
-                    next_state <= IDLE;
-                end if;
-            when EDGE =>
-                if input = '1' then
-                    next_state <= ENABLED;
-                else
-                    next_state <= IDLE;
-                end if;
-            when ENABLED =>
-                if input = '1' then
-                    next_state <= ENABLED;
-                else
-                    next_state <= IDLE;
-                end if;
-        end case;
-    end process;
 end Behavioral;
-

@@ -68,6 +68,9 @@ architecture Behavioral of TOP_ROMPixelArt is
     end component;
 
     component antiBouncesSTM
+        generic (
+            STABILIZATION_TIME : integer := 500000
+        );
         Port ( clk : in STD_LOGIC;
                reset : in STD_LOGIC;
                input : in STD_LOGIC;
@@ -260,11 +263,8 @@ begin
     sprite_selector_process: process(clk_25MHz, reset) -- Uses SW4 to switch between sprites
         variable sel_prev : std_logic := '0';
         begin
-            if reset = '1' then
-                selected_sprite <= (others => '0');
-                sel_prev := '0';
-            elsif (clk_25MHz'event and clk_25MHz = '1') then
-                if selector_debounced = '1' and sel_prev = '0' then -- rising edge detection
+            if (clk_25MHz'event and clk_25MHz = '1') then
+                if selector_debounced = '1' then
                     if selected_sprite = 5 then
                         selected_sprite <= (others => '0');
                     else

@@ -277,13 +277,13 @@ begin
                     if  pixel_o >= 315 and pixel_o <= 323 and 
                         line_o >= 235 and line_o <= 243 then
                             case selected_sprite is
-                                when "0" => rgb_out <= std_logic_vector(rom_data_cat);
-                                when "1" => rgb_out <= std_logic_vector(rom_data_cat_black);
-                                when "2" => rgb_out <= std_logic_vector(rom_data_cat_white);
-                                when "3" => rgb_out <= std_logic_vector(rom_data_alpaca);
-                                when "4" => rgb_out <= std_logic_vector(rom_data_github_big);
-                                when "5" => rgb_out <= std_logic_vector(rom_data_instagram_detailed);
-                                when others => rgb_out <= C_BLACK;
+                                when "000" => rgb_out <= std_logic_vector(rom_data_cat);
+                                when "001" => rgb_out <= std_logic_vector(rom_data_cat_black);
+                                when "010" => rgb_out <= std_logic_vector(rom_data_cat_white);
+                                when "011" => rgb_out <= std_logic_vector(rom_data_alpaca);
+                                when "100" => rgb_out <= std_logic_vector(rom_data_github_big);
+                                when "101" => rgb_out <= std_logic_vector(rom_data_instagram_detailed);
+                                when others => rgb_out <= rgb_in;
                             end case;
                     else
                         rgb_out <= rgb_in;

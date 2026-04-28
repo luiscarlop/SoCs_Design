@@ -198,7 +198,7 @@ begin
     process_show_counter: process (clk, reset)
     begin
         if reset = '1' then
-            value <= 100;
+            value <= to_unsigned(100, value'length);
         elsif (clk'event and clk = '1') then
             if ModeSelector = "00" then
                 if btn_count(0) = '1' and value < 255 then
@@ -207,7 +207,7 @@ begin
                     value <= value - 1;
                 end if;
             elsif ModeSelector = "01" or ModeSelector(1) = '1' then
-                if event_counter = hold_limit then
+                if tick_1ms = '1' and event_counter = hold_limit then
                     if btn_count_continous(0) = '1' and value < 255 then
                         value <= value + 1;
                     elsif btn_count_continous(1) = '1' and value > 1 then

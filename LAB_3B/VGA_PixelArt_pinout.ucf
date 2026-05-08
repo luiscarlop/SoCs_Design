@@ -5,19 +5,30 @@ NET clk	LOC = Y9   |IOSTANDARD=LVTTL;  # GCLK
 NET "reset" LOC = "P16" | IOSTANDARD=LVTTL; 	#BTNC
 
 # enable
+NET "btn"           LOC = "R16" | IOSTANDARD=LVTTL; 	#BTND
 
-NET rgb_in<0>	LOC = F22 | IOSTANDARD=LVTTL;  	# SW0
-NET rgb_in<1>	LOC = G22 | IOSTANDARD=LVTTL;  	# SW1
-NET rgb_in<2>	LOC = H22 | IOSTANDARD=LVTTL;  	# SW2
-NET rgb_in<3>	LOC = F21 | IOSTANDARD=LVTTL;  	# SW3
-NET rgb_in<4>	LOC = H19 | IOSTANDARD=LVTTL;  	# SW4
-NET rgb_in<5>	LOC = H18 | IOSTANDARD=LVTTL;  	# SW5
-NET rgb_in<6>	LOC = H17 | IOSTANDARD=LVTTL;  	# SW6
-NET rgb_in<7>	LOC = M15 | IOSTANDARD=LVTTL;  	# SW7
-NET rgb_in<8>   LOC = N15 | IOSTANDARD=LVTTL;   #BTNL
-NET rgb_in<9>   LOC = T18 | IOSTANDARD=LVTTL;   #BTNU
-NET rgb_in<10>  LOC = R16 | IOSTANDARD=LVTTL;   #BTND
-NET rgb_in<11>  LOC = R18 | IOSTANDARD=LVTTL;   #BTNR
+NET col_select<0>	LOC = F22 | IOSTANDARD=LVTTL;  	# SW0
+NET col_select<1>	LOC = G22 | IOSTANDARD=LVTTL;  	# SW1
+NET col_select<2>	LOC = H22 | IOSTANDARD=LVTTL;  	# SW2
+NET col_select<3>	LOC = F21 | IOSTANDARD=LVTTL;  	# SW3
+NET row_select<0>	LOC = H19 | IOSTANDARD=LVTTL;  	# SW4
+NET row_select<1>	LOC = H18 | IOSTANDARD=LVTTL;  	# SW5
+NET row_select<2>	LOC = H17 | IOSTANDARD=LVTTL;  	# SW6
+NET row_select<3>	LOC = M15 | IOSTANDARD=LVTTL;  	# SW7
+
+
+NET color_in<0>	    LOC = Y11  | IOSTANDARD=LVTTL;  # JA1
+NET color_in<1>	    LOC = AA11 | IOSTANDARD=LVTTL;  # JA2
+NET color_in<2>	    LOC = Y10  | IOSTANDARD=LVTTL;  # JA3
+NET color_in<3>	    LOC = AA9  | IOSTANDARD=LVTTL;  # JA4
+NET color_in<4>	    LOC = AB11 | IOSTANDARD=LVTTL;  # JA5
+NET color_in<5>	    LOC = AB10 | IOSTANDARD=LVTTL;  # JA6
+NET color_in<6>	    LOC = AB9  | IOSTANDARD=LVTTL;  # JA7
+NET color_in<7>	    LOC = AA8  | IOSTANDARD=LVTTL;  # JA8
+NET color_in<8>     LOC = W12  | IOSTANDARD=LVTTL;  # JB1
+NET color_in<9>     LOC = W11  | IOSTANDARD=LVTTL;  # JB2
+NET color_in<10>    LOC = V10  | IOSTANDARD=LVTTL;  # JB3
+NET color_in<11>    LOC = W8   | IOSTANDARD=LVTTL;  # JB4
 
 # Sincronias (HSync y VSync)
 NET "sync_h" LOC = "AA19" | IOSTANDARD=LVCMOS33; # VGA-HS

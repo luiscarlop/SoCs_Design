@@ -1,103 +1,151 @@
 --------------------------------------------------------------------------------
--- Company: 
--- Engineer:
+-- Company: Polytechnic University of Cartagena
+-- Engineer: Luis Carretero Lopez
 --
--- Create Date:   15:23:10 03/25/2026
--- Design Name:   
--- Module Name:   V:/LAB_3B/tbRAM_memory.vhd
--- Project Name:  LAB_3B
--- Target Device:  
--- Tool versions:  
--- Description:   
--- 
--- VHDL Test Bench Created by ISE for module: RAM_memory
--- 
--- Dependencies:
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
---
--- Notes: 
--- This testbench has been automatically generated using types std_logic and
--- std_logic_vector for the ports of the unit under test.  Xilinx recommends
--- that these types always be used for the top-level I/O of a design in order
--- to guarantee that the testbench will bind correctly to the post-implementation 
--- simulation model.
+-- Module Name: tbRAM_memory
+-- Description: Testbench for RAM_memory.
+--              Writes red (x"F00") to address 87 (row=5, col=7 in a 16x16 grid)
+--              then reads back to confirm the value is stored correctly.
+--              Also scans addresses 80-95 to verify only addr=87 returns red.
 --------------------------------------------------------------------------------
-LIBRARY ieee;
-USE ieee.std_logic_1164.ALL;
- 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---USE ieee.numeric_std.ALL;
- 
-ENTITY tbRAM_memory IS
-END tbRAM_memory;
- 
-ARCHITECTURE behavior OF tbRAM_memory IS 
- 
-    -- Component Declaration for the Unit Under Test (UUT)
- 
-    COMPONENT RAM_memory
-    PORT(
-         clk : IN  std_logic;
-         reset : IN  std_logic;
-         rgb_in : IN  std_logic_vector(11 downto 0);
-         sync_h : OUT  std_logic;
-         sync_v : OUT  std_logic;
-         rgb_out : OUT  std_logic_vector(11 downto 0)
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity tbRAM_memory is
+end tbRAM_memory;
+
+architecture behavior of tbRAM_memory is
+
+    component RAM_memory
+        Generic (
+            addr_width : integer := 8;
+            data_width : integer := 12
         );
-    END COMPONENT;
-    
+        Port (
+            clk          : in  STD_LOGIC;
+            addr         : in  unsigned(addr_width-1 downto 0);
+            write_enable : in  STD_LOGIC;
+            data_in      : in  unsigned(data_width-1 downto 0);
+            data_o       : out unsigned(data_width-1 downto 0)
+        );
+    end component;
 
-   --Inputs
-   signal clk : std_logic := '0';
-   signal reset : std_logic := '0';
-   signal rgb_in : std_logic_vector(11 downto 0) := (others => '0');
-  	--Outputs
-   signal sync_h : std_logic;
-   signal sync_v : std_logic;
-   signal rgb_out : std_logic_vector(11 downto 0);
+    -- 25 MHz clock (same as VGA pixel clock)
+    constant CLK_PERIOD : time := 40 ns;
 
-   -- Clock period definitions
-   constant clk_period : time := 10 ns;
- 
-BEGIN
- 
-	-- Instantiate the Unit Under Test (UUT)
-   uut: RAM_memory PORT MAP (
-          clk => clk,
-          reset => reset,
-          rgb_in => rgb_in,
-          sync_h => sync_h,
-          sync_v => sync_v,
-          rgb_out => rgb_out
+    -- Pixel to paint red: row=5, col=7 → addr = 5*16 + 7 = 87
+    constant TARGET_ROW  : integer := 5;
+    constant TARGET_COL  : integer := 7;
+    constant TARGET_ADDR : integer := TARGET_ROW * 16 + TARGET_COL; -- 87
+
+    constant COLOR_RED   : unsigned(11 downto 0) := x"F00"; -- R=F G=0 B=0
+    constant COLOR_BLACK : unsigned(11 downto 0) := x"000";
+
+    signal clk          : STD_LOGIC := '0';
+    signal addr         : unsigned(7 downto 0)  := (others => '0');
+    signal write_enable : STD_LOGIC := '0';
+    signal data_in      : unsigned(11 downto 0) := (others => '0');
+    signal data_o       : unsigned(11 downto 0);
+
+begin
+
+    uut: RAM_memory
+        generic map (
+            addr_width => 8,
+            data_width => 12
+        )
+        port map (
+            clk          => clk,
+            addr         => addr,
+            write_enable => write_enable,
+            data_in      => data_in,
+            data_o       => data_o
         );
 
-   -- Clock process definitions
-   clk_process :process
-   begin
-		clk <= '0';
-		wait for clk_period/2;
-		clk <= '1';
-		wait for clk_period/2;
-   end process;
- 
+    clk_process: process
+    begin
+        clk <= '0'; wait for CLK_PERIOD / 2;
+        clk <= '1'; wait for CLK_PERIOD / 2;
+    end process;
 
-   -- Stimulus process
-   stim_proc: process
-   begin	
-      -- hold reset state for 100 ns.
-      reset <= '1';
-      wait for 100 ns;
-      reset <= '0';
+    stim_proc: process
+    begin
+        -- ----------------------------------------------------------------
+        -- 1. Let everything settle (all addresses already reset to 0)
+        -- ----------------------------------------------------------------
+        wait for 5 * CLK_PERIOD;
 
-      rgb_in <= (others => '0');
+        -- ----------------------------------------------------------------
+        -- 2. Write red to addr=87 (row=5, col=7)
+        -- ----------------------------------------------------------------
+        addr         <= to_unsigned(TARGET_ADDR, 8);  -- 87
+        data_in      <= COLOR_RED;                     -- x"F00"
+        write_enable <= '1';
+        wait for CLK_PERIOD;   -- one rising edge: write is committed
+        write_enable <= '0';
 
-      -- insert stimulus here 
+        -- ----------------------------------------------------------------
+        -- 3. Read back addr=87 (synchronous RAM: data_o valid 1 cycle later)
+        --    The write cycle itself already did a read-first read, so
+        --    data_o is already x"F00" after that clock edge.
+        --    One more cycle confirms steady-state read.
+        -- ----------------------------------------------------------------
+        wait for CLK_PERIOD;
+        -- data_o should now be x"F00"
+        assert data_o = COLOR_RED
+            report "FAIL: addr=87 expected RED (F00) but got " &
+                   integer'image(to_integer(data_o))
+            severity error;
 
-      wait;
-   end process;
+        -- ----------------------------------------------------------------
+        -- 4. Scan addresses 80..95 — only 87 must be red
+        -- ----------------------------------------------------------------
+        for i in 80 to 95 loop
+            addr <= to_unsigned(i, 8);
+            wait for CLK_PERIOD;   -- wait one cycle for synchronous read
+            if i = TARGET_ADDR then
+                assert data_o = COLOR_RED
+                    report "FAIL: addr=" & integer'image(i) &
+                           " should be RED but is " &
+                           integer'image(to_integer(data_o))
+                    severity error;
+            else
+                assert data_o = COLOR_BLACK
+                    report "FAIL: addr=" & integer'image(i) &
+                           " should be BLACK but is " &
+                           integer'image(to_integer(data_o))
+                    severity error;
+            end if;
+        end loop;
 
-END;
+        -- ----------------------------------------------------------------
+        -- 5. Write a second colour (green) to addr=0 and verify it
+        -- ----------------------------------------------------------------
+        addr         <= to_unsigned(0, 8);
+        data_in      <= x"0F0";   -- G=F
+        write_enable <= '1';
+        wait for CLK_PERIOD;
+        write_enable <= '0';
+        wait for CLK_PERIOD;
+
+        assert data_o = x"0F0"
+            report "FAIL: addr=0 expected GREEN (0F0) but got " &
+                   integer'image(to_integer(data_o))
+            severity error;
+
+        -- ----------------------------------------------------------------
+        -- 6. Go back to addr=87 — must still be red (no corruption)
+        -- ----------------------------------------------------------------
+        addr <= to_unsigned(TARGET_ADDR, 8);
+        wait for CLK_PERIOD;
+
+        assert data_o = COLOR_RED
+            report "FAIL: addr=87 corrupted after writing addr=0"
+            severity error;
+
+        report "SIMULATION COMPLETE — all checks passed" severity note;
+        wait;
+    end process;
+
+end behavior;

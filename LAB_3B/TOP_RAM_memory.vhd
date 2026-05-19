@@ -202,9 +202,17 @@ begin
     --   2-cycle pipeline (RAM register + rgb_out_process register):
     --     ram_addr pre-fetch starts 2 pixels early (pixel_o - 310)
     --     Guard: pixel_o >= 310 so RAM has data ready at pixel 312
+    -- Fetch window [314,322] feeds the 2-cycle pipeline (RAM + rgb_out register).
+    -- pixel=323 is still inside the display check [315,323], so we hold the
+    -- col-8 address one extra cycle to keep BRAM output stable at edge E(323->324)
+    -- and avoid a timing race where rgb_out captures mem[0] (the else default)
+    -- instead of the actual col-8 data.
     ram_addr <= to_unsigned(to_integer(line_o - 235) * 9 +
                             to_integer(pixel_o - 314), 7)
         when pixel_o >= 314 and pixel_o <= 322 and
+             line_o  >= 235 and line_o  <= 243
+        else to_unsigned(to_integer(line_o - 235) * 9 + 8, 7)
+        when pixel_o = 323 and
              line_o  >= 235 and line_o  <= 243
         else (others => '0');
 

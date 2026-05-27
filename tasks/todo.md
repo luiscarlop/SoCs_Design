@@ -28,3 +28,11 @@
 - LAB_4C project created as a clean template based on LAB_4A.
 - Top source is a minimal `ButtonCounterStm` template with empty Behavioral architecture.
 - Project references shared `../modules/antiBouncesSTM.vhd` and removes testbench references.
+
+## LAB_5 Project File
+- [x] Replace local anti-bounce source with shared `modules/buttonCounterContinous.vhd` and `modules/movement_stm.vhd`
+- [x] Verify LAB_5.xise source associations stay in compile order
+
+## Review (LAB_5 Project File)
+- LAB_5.xise now references `../modules/buttonCounterContinous.vhd` and `../modules/movement_stm.vhd`.
+- The local `antiBouncesSTM.vhd` entry was removed from the project source list.

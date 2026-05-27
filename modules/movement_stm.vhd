@@ -65,7 +65,7 @@ architecture Behavioral of movement_stm is
     signal i_step_size : unsigned(4 downto 0);
 
     signal tick_1ms : STD_LOGIC;
-    signal counter_1ms : unsigned(16 downto 0);
+    signal counter_1ms : integer range 0 to counter_1ms_limit - 1 := 0; -- Scales with CLK_FREQ
     signal hold_limit : integer range 99 to 399 := 399; -- 399 for 400ms, 99 for 100ms
     signal event_counter : integer range 0 to 399 := 0;
     signal hold_ms : integer range 0 to 3000;
@@ -110,7 +110,7 @@ begin
     process_counter_1ms: process(clk, reset)
     begin
         if reset = '1' then
-            counter_1ms <= (others => '0');
+            counter_1ms <= 0;
         elsif (clk'event and clk = '1') then
             if hold_enabled = '1' then
                 if counter_1ms < counter_1ms_limit - 1 then
@@ -118,11 +118,11 @@ begin
                     tick_1ms <= '0';
                 else
                     tick_1ms <= '1';
-                    counter_1ms <= (others => '0');
+                    counter_1ms <= 0;
                 end if;
             else
                 tick_1ms <= '0';
-                counter_1ms <= (others => '0');
+                counter_1ms <= 0;
             end if;
         end if;
     end process;

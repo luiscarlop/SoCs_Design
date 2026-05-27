@@ -8,14 +8,19 @@ NET "reset" LOC = "P16" | IOSTANDARD=LVTTL; 	#BTNC
 
 NET show_image	LOC = F22 | IOSTANDARD=LVTTL;  	# SW0
 
-NET quadrant_selector<0>	LOC = G22 | IOSTANDARD=LVTTL;  	# SW1
-NET quadrant_selector<1>	LOC = H22 | IOSTANDARD=LVTTL;  	# SW2
+# NET quadrant_selector<0>	LOC = G22 | IOSTANDARD=LVTTL;  	# SW1
+# NET quadrant_selector<1>	LOC = H22 | IOSTANDARD=LVTTL;  	# SW2
 
 # NET color_in<0>	LOC = F21 | IOSTANDARD=LVTTL;  	# SW3
 # NET color_in<1>	LOC = H19 | IOSTANDARD=LVTTL;  	# SW4
 NET color_in<0>	LOC = H18 | IOSTANDARD=LVTTL;  	# SW5
 NET color_in<1>	LOC = H17 | IOSTANDARD=LVTTL;  	# SW6
 NET color_in<2>	LOC = M15 | IOSTANDARD=LVTTL;  	# SW7
+
+NET BTN<0>   LOC = N15 | IOSTANDARD=LVTTL;   #BTNL
+NET BTN<1>   LOC = T18 | IOSTANDARD=LVTTL;   #BTNU
+NET BTN<2>   LOC = R18 | IOSTANDARD=LVTTL;   #BTNR
+NET BTN<3>   LOC = R16 | IOSTANDARD=LVTTL;   #BTND
 
 # Sincronas (HSync y VSync)
 NET "sync_h" LOC = "AA19" | IOSTANDARD=LVCMOS33; # VGA-HS

@@ -136,8 +136,6 @@ architecture Behavioral of TOP_CoreGenerator is
     constant Y_MIN : unsigned(9 downto 0) := to_unsigned(0, 10);
     constant Y_MAX : unsigned(9 downto 0) := to_unsigned(479, 10);
 
-    type state_t 
-
 begin
     -- Modules --
     Module_MMCM: MMCME2_BASE

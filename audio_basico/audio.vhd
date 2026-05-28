@@ -6,6 +6,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use ieee.numeric_std.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -94,9 +95,6 @@ constant DELAY_STEP_MS : integer := 250;
 -- signals for delay control ---
 signal delay_time : integer range 0 to 10000 := 0; -- Delay time in ms
 signal increase_delay, decrease_delay : std_logic;
-signal tick_1ms : std_logic;
-signal counter_1ms : integer range 0 to 10999 := 0; -- 1ms with 11MHz clock
-signal counter_event : integer range 0 to 40*DELAY_STEP_MS - 1 := 0; -- Max delay of 10s (40*250ms)
 signal delay_samples : integer range 0 to 109999 := 0; -- Max samples for 10s delay at 11MHz
 
 signal freq_divider_counter : integer range 0 to 999 := 0;
@@ -105,7 +103,6 @@ signal write_enable : std_logic_vector(0 downto 0);
 
 -- señales Analog Devices Audio Codec 1761---
 signal AC_MCLK_i : std_logic;
-signal new_sample : std_logic;
 signal line_in_l, line_in_r  : std_logic_vector(15 downto 0);
 signal hphone_l, hphone_r   : std_logic_vector(15 downto 0);
 -------------------------------------------
@@ -309,36 +306,6 @@ begin
 			end if;
 		end if;
 	end if;
-	end process;
-
-	process_counter_1ms: process(clk_11MHz, reset)
-	begin
-		if reset = '1' then
-			counter_1ms <= 0;
-		elsif (clk_11MHz'event and clk_11MHz = '1') then
-			if counter_1ms <  10999 then
-				counter_1ms <= counter_1ms + 1;
-				tick_1ms <= '0';
-			else
-				tick_1ms <= '1';
-				counter_1ms <= 0;
-			end if;
-		end if;
-	end process;
-
-	process_counter_event: process(clk_11MHz, reset)
-	begin
-		if reset = '1' then
-			counter_event <= 0;
-		elsif (clk_11MHz'event and clk_11MHz = '1') then
-			if tick_1ms = '1' then
-				if counter_event < delay_time - 1 then
-					counter_event <= counter_event + 1;
-				else
-					counter_event <= 0;
-				end if;
-			end if;
-		end if;
 	end process;
 
 	process(clk_48MHz)

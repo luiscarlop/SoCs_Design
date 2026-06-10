@@ -26,11 +26,13 @@ entity audio is
 
     reset  : in std_logic; -- BTNC
     switch : in std_logic_vector(7 downto 2);
-    LEDs   : out std_logic_vector(7 downto 0);
+    --switch<7>:switch<5> -> increase speed
+    --switch<4>:switch<2> -> decrease speed
+    LEDs : out std_logic_vector(7 downto 0);
 
-    mute         : in std_logic; -- SW0
-    delay_enable : in std_logic; -- SW1 -> 0: IN -> OUT, SW1 -> 1: IN -> DELAYED OUT
-    delay_select : in std_logic_vector(1 downto 0) -- <01> -> BTNR, <10> -> BTNL
+    mute          : in std_logic; -- SW0
+    record_button : in std_logic; -- BTNR
+    play_button   : in std_logic -- BTNL
   );
 end audio;
 
@@ -80,7 +82,10 @@ architecture Behavioral of audio is
       output : out std_logic);
   end component;
   -------------------------------------------
-  -- se�ales generales ---
+  signal playback_div_limit   : integer range 0 to 2828 := 1000;
+  signal playback_div_counter : integer range 0 to 2828 := 0;
+  signal playback_event       : std_logic;
+  -- seales generales ---
   signal clk_48MHz, clk_11MHz : std_logic;
   signal switch_reg           : std_logic_vector(7 downto 0);
 
@@ -90,12 +95,8 @@ architecture Behavioral of audio is
   signal CLKFBOUT         : std_logic;
   -------------------------------------------
 
-  constant DELAY_STEP_MS : integer := 250;
-
   -- signals for delay control ---
-  signal delay_time                     : integer range 0 to 10000 := 0; -- Delay time in ms
-  signal increase_delay, decrease_delay : std_logic;
-  signal delay_samples                  : integer range 0 to 109999 := 0; -- Max samples for 10s delay at 11MHz
+  signal record_pressed, play_event, play_pause : std_logic;
 
   signal freq_divider_counter : integer range 0 to 999 := 0;
   signal freq_divider_event   : std_logic;
@@ -112,9 +113,6 @@ architecture Behavioral of audio is
   signal addr_counter_a                       : integer range 0 to 110999 := 0; -- Counter for addressing RAM (111k samples)
   signal addr_counter_b                       : integer range 0 to 110999 := 0; -- Counter for addressing RAM (111k samples)
 
-  -- Declara componente para generar la se�al de reloj clk_48MHz -----
-  -- AQUI -------------------------------------------------------------
-  --------------------------------------------------------------------
 begin
 
   modulo_ADAU1761_controlador : ADAU1761_controlador
@@ -160,20 +158,20 @@ begin
     doutb => delayed_line_in_r
   );
 
-  Module_btn_increase_delay : ButtonCounterContinous
+  Module_btn_record : ButtonCounterContinous
   generic map(
     STABILIZATION_TIME => 240000, -- 5ms at 48MHz
-    HOLD               => false
+    HOLD               => true
   )
   port map
   (
     clk    => clk_48MHz,
     reset  => reset,
-    input  => delay_select(0), -- BTNR
-    output => increase_delay
+    input  => record_button, -- BTNR
+    output => record_pressed
   );
 
-  Module_btn_decrease_delay : ButtonCounterContinous
+  Module_btn_play : ButtonCounterContinous
   generic map(
     STABILIZATION_TIME => 240000, -- 5ms at 48MHz
     HOLD               => false
@@ -182,8 +180,8 @@ begin
   (
     clk    => clk_48MHz,
     reset  => reset,
-    input  => delay_select(1), -- BTNL
-    output => decrease_delay
+    input  => play_button,
+    output => play_event
   );
 
   Module_MMCM : MMCME2_BASE
@@ -255,6 +253,59 @@ begin
   -------------------------------------------------------------
   --              			PROCESS
   -------------------------------------------------------------
+  process_play_pause : process (clk_48MHz, reset)
+  begin
+    if reset = '1' then
+      play_pause <= '0';
+    elsif clk_48MHz'event and clk_48MHz = '1' then
+      if play_event = '1' then
+        play_pause <= not play_pause;
+      end if;
+    end if;
+  end process process_play_pause;
+
+  -- case switch(7 downto 2) is 
+  -- 111xxx -> +1.5 octaves
+  -- 011xxx -> +1 octave
+  -- 001xxx -> +0.5 octaves
+  -- 000111 -> -1.5 octaves
+  -- 000011 -> -1 octave
+  -- 000001 -> -0.5 octaves
+  -- others -> default
+  process_set_playback_freq : process (switch)
+  begin
+    if switch(7 downto 5) = "111" then
+      playback_div_limit <= 354;
+    elsif switch(7 downto 5) = "011" then
+      playback_div_limit <= 500;
+    elsif switch(7 downto 5) = "001" then
+      playback_div_limit <= 707;
+    elsif switch(4 downto 2) = "111" then
+      playback_div_limit <= 2828;
+    elsif switch(4 downto 2) = "011" then
+      playback_div_limit <= 2000;
+    elsif switch(4 downto 2) = "001" then
+      playback_div_limit <= 1414;
+    else
+      playback_div_limit <= 1000;
+    end if;
+  end process;
+
+  process_playback : process (clk_11MHz, reset)
+  begin
+    if reset = '1' then
+      playback_div_counter <= 0;
+    elsif (clk_11MHz'event and clk_11MHz = '1') then
+      if playback_div_counter < playback_div_limit - 1 then
+        playback_div_counter <= playback_div_counter + 1;
+        playback_event       <= '0';
+      else
+        playback_event       <= '1';
+        playback_div_counter <= 0;
+      end if;
+    end if;
+  end process;
+
   process_11khz : process (clk_11MHz, reset)
   begin
     if reset = '1' then
@@ -270,22 +321,8 @@ begin
     end if;
   end process;
 
-  process_delay_control : process (clk_11MHz, reset)
-  begin
-    if reset = '1' then
-      delay_time <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
-      if increase_delay = '1' and delay_time < 40 * DELAY_STEP_MS then
-        delay_time <= delay_time + DELAY_STEP_MS;
-      elsif decrease_delay = '1' and delay_time >= DELAY_STEP_MS then
-        delay_time <= delay_time - DELAY_STEP_MS;
-      end if;
-    end if;
-  end process;
-
-  write_enable <= "1" when freq_divider_event = '1' else
+  write_enable <= "1" when freq_divider_event = '1' and record_pressed = '1' else
     "0";
-  delay_samples <= delay_time * 11; -- 11 samples per ms at 11 MHz
 
   addra <= std_logic_vector(to_unsigned(addr_counter_a, addra'length));
   addrb <= std_logic_vector(to_unsigned(addr_counter_b, addrb'length));
@@ -298,21 +335,19 @@ begin
       addr_counter_a <= 0;
       addr_counter_b <= 0;
     elsif (clk_11MHz'event and clk_11MHz = '1') then
-      if freq_divider_event = '1' then
+      if freq_divider_event = '1' and record_pressed = '1' then
         if addr_counter_a < 110999 then
           addr_counter_a <= addr_counter_a + 1;
         else
           addr_counter_a <= 0;
         end if;
+      end if;
 
-        if delay_enable = '1' then
-          if addr_counter_a >= delay_samples then
-            addr_counter_b <= addr_counter_a - delay_samples;
-          else
-            addr_counter_b <= addr_counter_a + (111000 - delay_samples);
-          end if;
+      if playback_event = '1' and play_pause = '1' then
+        if addr_counter_b < 110999 then
+          addr_counter_b <= addr_counter_b + 1;
         else
-          addr_counter_b <= addr_counter_a; -- Directly pass through when delay is disabled
+          addr_counter_b <= 0;
         end if;
       end if;
     end if;
@@ -321,7 +356,7 @@ begin
   process (clk_48MHz)
   begin
     if (clk_48MHz = '1' and clk_48MHz'event) then
-      switch_reg <= switch & delay_enable & mute;
+      switch_reg <= switch & "0" & mute;
     end if;
   end process;
   process (clk_48MHz)
@@ -337,9 +372,6 @@ begin
       if mute = '1' then
         hphone_l <= (others => '0');
         hphone_r <= (others => '0');
-      elsif delay_enable = '1' then
-        hphone_l <= delayed_line_in_l;
-        hphone_r <= delayed_line_in_r;
       else
         hphone_l <= line_in_l;
         hphone_r <= line_in_r;

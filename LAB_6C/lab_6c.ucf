@@ -15,6 +15,7 @@ NET AC_MCLK       LOC = AB2  | IOSTANDARD=LVCMOS33;
 
 NET mute              LOC = F22  | IOSTANDARD=LVCMOS33;  # "SW0"
 
+NET SWITCH<1>         LOC = G22  | IOSTANDARD=LVCMOS33;  # "SW1"
 NET SWITCH<2>         LOC = H22  | IOSTANDARD=LVCMOS33;  # "SW2"
 NET SWITCH<3>         LOC = F21  | IOSTANDARD=LVCMOS33;  # "SW3"
 NET SWITCH<4>         LOC = H19  | IOSTANDARD=LVCMOS33;  # "SW4"
@@ -25,8 +26,8 @@ NET SWITCH<7>         LOC = M15  | IOSTANDARD=LVCMOS33;  # "SW7"
 #NET BTN<0>           LOC = P16  | IOSTANDARD=LVTTL;  # "BTNC"
 NET play_button           LOC = N15  | IOSTANDARD=LVTTL;  # "BTNL"
 NET record_button           LOC = R18  | IOSTANDARD=LVTTL;  # "BTNR"
-#NET BTN<3>           LOC = T18  | IOSTANDARD=LVTTL;  # "BTNU"
-#NET BTN<4>           LOC = R16  | IOSTANDARD=LVTTL;  # "BTND"
+NET pitch_up            LOC = T18  | IOSTANDARD=LVTTL;  # "BTNU"
+NET pitch_down          LOC = R16  | IOSTANDARD=LVTTL;  # "BTND"
 
 NET "Leds<0>"  LOC = "T22" | IOSTANDARD=LVCMOS33 ; 
 NET "Leds<1>"  LOC = "T21" | IOSTANDARD=LVCMOS33 ; 

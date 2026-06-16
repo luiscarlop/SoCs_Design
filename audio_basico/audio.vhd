@@ -4,8 +4,6 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
-use IEEE.STD_LOGIC_ARITH.all;
-use IEEE.STD_LOGIC_UNSIGNED.all;
 use ieee.numeric_std.all;
 
 library unisim;
@@ -81,11 +79,11 @@ architecture Behavioral of audio is
   end component;
   -------------------------------------------
   -- se�ales generales ---
-  signal clk_48MHz, clk_11MHz : std_logic;
+  signal clk_48MHz : std_logic;
   signal switch_reg           : std_logic_vector(7 downto 0);
 
   signal CLKIN1           : std_logic;
-  signal CLKOUT0, CLKOUT1 : std_logic;
+  signal CLKOUT0          : std_logic;
   signal CLKFBIN          : std_logic;
   signal CLKFBOUT         : std_logic;
   -------------------------------------------
@@ -95,10 +93,9 @@ architecture Behavioral of audio is
   -- signals for delay control ---
   signal delay_time                     : integer range 0 to 10000 := 0; -- Delay time in ms
   signal increase_delay, decrease_delay : std_logic;
-  signal delay_samples                  : integer range 0 to 109999 := 0; -- Max samples for 10s delay at 11MHz
+  signal delay_samples                  : integer range 0 to 110000 := 0; -- Max samples for 10s delay at 11kHz
 
-  signal freq_divider_counter : integer range 0 to 999 := 0;
-  signal freq_divider_event   : std_logic;
+  signal freq_divider_counter : integer range 0 to 4364 := 0;
   signal write_enable         : std_logic_vector(0 downto 0);
 
   -- señales Analog Devices Audio Codec 1761---
@@ -139,7 +136,7 @@ begin
   Module_RAM_audio_l : recorded_audio
   port map
   (
-    clka  => clk_11MHz,
+    clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
     dina  => line_in_l,
@@ -151,7 +148,7 @@ begin
   Module_RAM_audio_r : recorded_audio
   port map
   (
-    clka  => clk_11MHz,
+    clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
     dina  => line_in_r,
@@ -194,8 +191,6 @@ begin
     CLKIN1_PERIOD    => 10.0,
     CLKOUT0_DIVIDE_F => 25.0, -- 1200 MHz / 25 = 48 MHz
     CLKOUT0_PHASE    => 0.0,
-    CLKOUT1_DIVIDE   => 109, -- 1200 MHz / 109 = 11 MHz
-    CLKOUT1_PHASE    => 0.0,
 
     CLKOUT4_CASCADE => FALSE,
     DIVCLK_DIVIDE   => 1,
@@ -206,7 +201,7 @@ begin
   (
     CLKOUT0   => CLKOUT0,
     CLKOUT0B  => open,
-    CLKOUT1   => CLKOUT1,
+    CLKOUT1   => open,
     CLKOUT1B  => open,
     CLKOUT2   => open,
     CLKOUT2B  => open,
@@ -238,13 +233,6 @@ begin
     I => CLKOUT0
   );
 
-  BUFG_inst_clkout1 : BUFG
-  port map
-  (
-    O => clk_11MHz,
-    I => CLKOUT1
-  );
-
   BUFG_inst_clkfbout : BUFG
   port map
   (
@@ -255,50 +243,48 @@ begin
   -------------------------------------------------------------
   --              			PROCESS
   -------------------------------------------------------------
-  process_11khz : process (clk_11MHz, reset)
+  process_11khz : process (clk_48MHz, reset)
   begin
     if reset = '1' then
       freq_divider_counter <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
-      if freq_divider_counter < 999 then
+      write_enable   <= "0";
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      if freq_divider_counter < 4364 then
         freq_divider_counter <= freq_divider_counter + 1;
-        freq_divider_event   <= '0';
+        write_enable   <= "0";
       else
-        freq_divider_event   <= '1';
+        write_enable   <= "1";
         freq_divider_counter <= 0;
       end if;
     end if;
   end process;
 
-  process_delay_control : process (clk_11MHz, reset)
+  process_delay_control : process (clk_48MHz, reset)
   begin
     if reset = '1' then
       delay_time <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
       if increase_delay = '1' and delay_time < 40 * DELAY_STEP_MS then
         delay_time <= delay_time + DELAY_STEP_MS;
       elsif decrease_delay = '1' and delay_time >= DELAY_STEP_MS then
         delay_time <= delay_time - DELAY_STEP_MS;
       end if;
+      delay_samples <= delay_time * 11; 
     end if;
   end process;
-
-  write_enable <= "1" when freq_divider_event = '1' else
-    "0";
-  delay_samples <= delay_time * 11; -- 11 samples per ms at 11 MHz
 
   addra <= std_logic_vector(to_unsigned(addr_counter_a, addra'length));
   addrb <= std_logic_vector(to_unsigned(addr_counter_b, addrb'length));
 
   AC_MCLK <= AC_MCLK_i;
 
-  process_addr : process (clk_11MHz, reset)
+  process_addr : process (clk_48MHz, reset)
   begin
     if reset = '1' then
       addr_counter_a <= 0;
       addr_counter_b <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
-      if freq_divider_event = '1' then
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      if write_enable = "1" then
         if addr_counter_a < 110999 then
           addr_counter_a <= addr_counter_a + 1;
         else

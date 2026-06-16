@@ -4,8 +4,6 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
-use IEEE.STD_LOGIC_ARITH.all;
-use IEEE.STD_LOGIC_UNSIGNED.all;
 use ieee.numeric_std.all;
 
 library unisim;
@@ -25,14 +23,14 @@ entity audio is
     AC_SDA     : inout std_logic;
 
     reset  : in std_logic; -- BTNC
-    switch : in std_logic_vector(7 downto 2);
-    --switch<7>:switch<5> -> increase speed
-    --switch<4>:switch<2> -> decrease speed
+    switch : in std_logic_vector(7 downto 1);
     LEDs : out std_logic_vector(7 downto 0);
 
     mute          : in std_logic; -- SW0
     record_button : in std_logic; -- BTNR
-    play_button   : in std_logic -- BTNL
+    play_button   : in std_logic; -- BTNL
+    pitch_up      : in std_logic; -- BTNU
+    pitch_down    : in std_logic -- BTND
   );
 end audio;
 
@@ -82,25 +80,31 @@ architecture Behavioral of audio is
       output : out std_logic);
   end component;
   -------------------------------------------
-  signal playback_div_limit   : integer range 0 to 2828 := 1000;
-  signal playback_div_counter : integer range 0 to 2828 := 0;
+  constant C_BASE_DIV : integer := 4364; -- Base divisor for 11 kHz playback at 48 MHz clock
+  constant C_MIN_DIV  : integer := 2182; -- Minimum divisor for 22 kHz playback (2x speed)
+  constant C_MAX_DIV  : integer := 10909; -- Maximum divisor for 5 kHz playback (0.5x speed)
+  constant C_PITCH_STEP : integer := 436;
+  signal pitch_div : integer range C_MIN_DIV to C_MAX_DIV := C_BASE_DIV;
+
+  signal playback_div_limit   : integer range C_MIN_DIV to C_MAX_DIV := C_BASE_DIV;
+  signal playback_div_counter : integer range 0 to C_MAX_DIV := 0;
   signal playback_event       : std_logic;
   -- seales generales ---
-  signal clk_48MHz, clk_11MHz : std_logic;
+  signal clk_48MHz            : std_logic;
   signal switch_reg           : std_logic_vector(7 downto 0);
 
   signal CLKIN1           : std_logic;
-  signal CLKOUT0, CLKOUT1 : std_logic;
+  signal CLKOUT0       : std_logic;
   signal CLKFBIN          : std_logic;
   signal CLKFBOUT         : std_logic;
   -------------------------------------------
 
-  -- signals for delay control ---
-  signal record_pressed, play_event, play_pause : std_logic;
+  -- signals for pitch control ---
+  signal record_pressed, play_event, play_pause, pitch_up_event, pitch_down_event : std_logic;
 
-  signal freq_divider_counter : integer range 0 to 999 := 0;
-  signal freq_divider_event   : std_logic;
+  signal freq_divider_counter : integer range 0 to C_BASE_DIV := 0;
   signal write_enable         : std_logic_vector(0 downto 0);
+  signal has_data             : std_logic;
 
   -- señales Analog Devices Audio Codec 1761---
   signal AC_MCLK_i            : std_logic;
@@ -108,12 +112,57 @@ architecture Behavioral of audio is
   signal hphone_l, hphone_r   : std_logic_vector(15 downto 0);
   -------------------------------------------
 
-  signal delayed_line_in_l, delayed_line_in_r : std_logic_vector(15 downto 0);
+  signal internal_line_in_l, internal_line_in_r : std_logic_vector(15 downto 0);
   signal addra, addrb                         : std_logic_vector(16 downto 0); -- 17 bits for 128k samples
   signal addr_counter_a                       : integer range 0 to 110999 := 0; -- Counter for addressing RAM (111k samples)
   signal addr_counter_b                       : integer range 0 to 110999 := 0; -- Counter for addressing RAM (111k samples)
 
+  signal recorded_length : integer range 0 to 110999 := 0; -- Length of recorded audio in samples
+
+  type states_t is (IDLE, RECORDING, REPLAY);
+  signal state, next_state : states_t;
+
 begin
+
+  -------------------------------------------
+  ------------------ FSM --------------------
+  -------------------------------------------
+
+  next_state_process : process (clk_48MHz, reset)
+  begin
+    if reset = '1' then
+      state <= IDLE;
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      state <= next_state;
+    end if;
+  end process;
+
+  transition_process : process (state, record_pressed, play_pause, has_data)
+  begin
+    case state is
+      when IDLE =>
+        if record_pressed = '1' then
+          next_state <= RECORDING;
+        elsif play_event = '1' and has_data = '1' then
+          next_state <= REPLAY;
+        else
+          next_state <= IDLE;
+        end if;
+      when RECORDING =>
+        if record_pressed = '1' then
+          next_state <= RECORDING;
+        else
+          next_state <= IDLE;
+        end if;
+      when REPLAY =>
+        if play_pause = '1' then
+          next_state <= REPLAY;
+        else
+          next_state <= IDLE;
+        end if;
+    end case;
+  end process;
+        
 
   modulo_ADAU1761_controlador : ADAU1761_controlador
   port map
@@ -137,25 +186,25 @@ begin
   Module_RAM_audio_l : recorded_audio
   port map
   (
-    clka  => clk_11MHz,
+    clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
     dina  => line_in_l,
     clkb  => clk_48MHz,
     addrb => addrb,
-    doutb => delayed_line_in_l
+    doutb => internal_line_in_l
   );
 
   Module_RAM_audio_r : recorded_audio
   port map
   (
-    clka  => clk_11MHz,
+    clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
     dina  => line_in_r,
     clkb  => clk_48MHz,
     addrb => addrb,
-    doutb => delayed_line_in_r
+    doutb => internal_line_in_r
   );
 
   Module_btn_record : ButtonCounterContinous
@@ -184,6 +233,32 @@ begin
     output => play_event
   );
 
+  Module_btn_pitch_up : ButtonCounterContinous
+  generic map(
+    STABILIZATION_TIME => 240000, -- 5ms at 48MHz
+    HOLD               => false
+  )
+  port map
+  (
+    clk    => clk_48MHz,
+    reset  => reset,
+    input  => pitch_up, -- BTNU
+    output => pitch_up_event
+  );
+
+  Module_btn_pitch_down : ButtonCounterContinous
+  generic map(
+    STABILIZATION_TIME => 240000, -- 5ms at 48MHz
+    HOLD               => false
+  )
+  port map
+  (
+    clk    => clk_48MHz,
+    reset  => reset,
+    input  => pitch_down, -- BTND
+    output => pitch_down_event
+  );
+
   Module_MMCM : MMCME2_BASE
   generic map(
     BANDWIDTH        => "OPTIMIZED",
@@ -192,8 +267,6 @@ begin
     CLKIN1_PERIOD    => 10.0,
     CLKOUT0_DIVIDE_F => 25.0, -- 1200 MHz / 25 = 48 MHz
     CLKOUT0_PHASE    => 0.0,
-    CLKOUT1_DIVIDE   => 109, -- 1200 MHz / 109 = 11 MHz
-    CLKOUT1_PHASE    => 0.0,
 
     CLKOUT4_CASCADE => FALSE,
     DIVCLK_DIVIDE   => 1,
@@ -204,7 +277,7 @@ begin
   (
     CLKOUT0   => CLKOUT0,
     CLKOUT0B  => open,
-    CLKOUT1   => CLKOUT1,
+    CLKOUT1   => open,
     CLKOUT1B  => open,
     CLKOUT2   => open,
     CLKOUT2B  => open,
@@ -236,13 +309,6 @@ begin
     I => CLKOUT0
   );
 
-  BUFG_inst_clkout1 : BUFG
-  port map
-  (
-    O => clk_11MHz,
-    I => CLKOUT1
-  );
-
   BUFG_inst_clkfbout : BUFG
   port map
   (
@@ -253,49 +319,43 @@ begin
   -------------------------------------------------------------
   --              			PROCESS
   -------------------------------------------------------------
+
   process_play_pause : process (clk_48MHz, reset)
   begin
     if reset = '1' then
       play_pause <= '0';
     elsif clk_48MHz'event and clk_48MHz = '1' then
-      if play_event = '1' then
+      if state = IDLE then
+        play_pause <= '0'; -- Reset play_pause when returning to IDLE
+      elsif play_event = '1' then
         play_pause <= not play_pause;
       end if;
     end if;
-  end process process_play_pause;
+  end process;
 
-  -- case switch(7 downto 2) is 
-  -- 111xxx -> +1.5 octaves
-  -- 011xxx -> +1 octave
-  -- 001xxx -> +0.5 octaves
-  -- 000111 -> -1.5 octaves
-  -- 000011 -> -1 octave
-  -- 000001 -> -0.5 octaves
-  -- others -> default
-  process_set_playback_freq : process (switch)
+  process_pitch_control : process (clk_48MHz, reset)
   begin
-    if switch(7 downto 5) = "111" then
-      playback_div_limit <= 354;
-    elsif switch(7 downto 5) = "011" then
-      playback_div_limit <= 500;
-    elsif switch(7 downto 5) = "001" then
-      playback_div_limit <= 707;
-    elsif switch(4 downto 2) = "111" then
-      playback_div_limit <= 2828;
-    elsif switch(4 downto 2) = "011" then
-      playback_div_limit <= 2000;
-    elsif switch(4 downto 2) = "001" then
-      playback_div_limit <= 1414;
-    else
-      playback_div_limit <= 1000;
+    if reset = '1' then
+      pitch_div <= C_BASE_DIV;
+    elsif clk_48MHz'event and clk_48MHz = '1' then
+      if pitch_up_event = '1' then
+        if pitch_div > C_MIN_DIv + C_PITCH_STEP then
+          pitch_div <= pitch_div - C_PITCH_STEP;
+        end if;
+      elsif pitch_down_event = '1' then
+        if pitch_div < C_MAX_DIV - C_PITCH_STEP then
+          pitch_div <= pitch_div + C_PITCH_STEP;
+        end if;
+      end if;
+      playback_div_limit <= pitch_div;
     end if;
   end process;
 
-  process_playback : process (clk_11MHz, reset)
+  process_playback : process (clk_48MHz, reset)
   begin
     if reset = '1' then
       playback_div_counter <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
       if playback_div_counter < playback_div_limit - 1 then
         playback_div_counter <= playback_div_counter + 1;
         playback_event       <= '0';
@@ -306,49 +366,83 @@ begin
     end if;
   end process;
 
-  process_11khz : process (clk_11MHz, reset)
+  process_stored_length : process (clk_48MHz, reset)
   begin
     if reset = '1' then
-      freq_divider_counter <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
-      if freq_divider_counter < 999 then
-        freq_divider_counter <= freq_divider_counter + 1;
-        freq_divider_event   <= '0';
-      else
-        freq_divider_event   <= '1';
-        freq_divider_counter <= 0;
+      recorded_length <= 0;
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      if next_state = RECORDING and state /= RECORDING then
+        recorded_length <= 0; -- Reset recorded length when starting a new recording
+      elsif state = RECORDING then
+        if write_enable = "1" then
+          if recorded_length < 110999 then
+            recorded_length <= recorded_length + 1;
+          end if;
+        end if;
       end if;
     end if;
   end process;
 
-  write_enable <= "1" when freq_divider_event = '1' and record_pressed = '1' else
-    "0";
+  process_11khz : process (clk_48MHz, reset)
+  begin
+    if reset = '1' then
+      freq_divider_counter <= 0;
+      write_enable   <= "0";
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      if freq_divider_counter < 4364 then
+        freq_divider_counter <= freq_divider_counter + 1;
+        write_enable   <= "0";
+      else
+        if record_pressed = '1' and state = RECORDING then
+          write_enable   <= "1";
+        else
+          write_enable   <= "0";
+        end if;
+        freq_divider_counter <= 0;
+      end if;
+    end if;
+  end process;
 
   addra <= std_logic_vector(to_unsigned(addr_counter_a, addra'length));
   addrb <= std_logic_vector(to_unsigned(addr_counter_b, addrb'length));
 
   AC_MCLK <= AC_MCLK_i;
 
-  process_addr : process (clk_11MHz, reset)
+  process_addr : process (clk_48MHz, reset)
   begin
     if reset = '1' then
       addr_counter_a <= 0;
       addr_counter_b <= 0;
-    elsif (clk_11MHz'event and clk_11MHz = '1') then
-      if freq_divider_event = '1' and record_pressed = '1' then
-        if addr_counter_a < 110999 then
-          addr_counter_a <= addr_counter_a + 1;
-        else
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      case state is
+        when IDLE =>
           addr_counter_a <= 0;
-        end if;
-      end if;
-
-      if playback_event = '1' and play_pause = '1' then
-        if addr_counter_b < 110999 then
-          addr_counter_b <= addr_counter_b + 1;
-        else
           addr_counter_b <= 0;
-        end if;
+        when RECORDING =>
+          if write_enable = "1" then
+            if addr_counter_a < 110999 then
+              addr_counter_a <= addr_counter_a + 1;
+            end if;
+          end if;
+        when REPLAY =>
+          if playback_event = '1' then
+            if addr_counter_b < recorded_length then
+              addr_counter_b <= addr_counter_b + 1;
+            else
+              addr_counter_b <= 0;
+            end if;
+          end if;
+      end case;
+    end if;
+  end process;
+
+  process_has_data : process (clk_48MHz, reset)
+  begin
+    if reset = '1' then
+      has_data <= '0';
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      if write_enable = "1" then
+        has_data <= '1';
       end if;
     end if;
   end process;
@@ -356,13 +450,43 @@ begin
   process (clk_48MHz)
   begin
     if (clk_48MHz = '1' and clk_48MHz'event) then
-      switch_reg <= switch & "0" & mute;
+      switch_reg <= switch & mute;
     end if;
   end process;
-  process (clk_48MHz)
+
+  process_LED_indicator : process (clk_48MHz)
   begin
     if (clk_48MHz = '1' and clk_48MHz'event) then
-      LEDs <= switch_reg;
+      if state = RECORDING then
+        LEDs(7) <= '1'; -- Turn on LED7 when recording
+      else
+        LEDs(7) <= '0'; -- Turn off LED7 when not recording
+      end if;
+
+      if state = REPLAY then
+        LEDs(6) <= '1'; -- Turn on LED6 when playing
+      else
+        LEDs(6) <= '0'; -- Turn off LED6 when not playing
+      end if;
+
+      if playback_div_limit < C_BASE_DIV then
+        LEDs(5) <= '1'; -- Turn on LED5 when pitch is up (faster)
+      else
+        LEDs(5) <= '0'; -- Turn off LED5 when pitch is normal or down
+      end if;
+
+      if playback_div_limit > C_BASE_DIV then
+        LEDs(4) <= '1'; -- Turn on LED4 when pitch is down (slower)
+      else
+        LEDs(4) <= '0'; -- Turn off LED4 when pitch is normal or up
+      end if;
+
+      if has_data = '1' then
+        LEDs(3) <= '1'; -- Turn on LED3 when there is recorded data
+      else
+        LEDs(3) <= '0'; -- Turn off LED3 when there is no recorded data
+      end if;
+      LEDs(2 downto 0) <= switch_reg(2 downto 0);
     end if;
   end process;
 
@@ -372,9 +496,15 @@ begin
       if mute = '1' then
         hphone_l <= (others => '0');
         hphone_r <= (others => '0');
-      else
+      elsif state = REPLAY then
+        hphone_l <= internal_line_in_l;
+        hphone_r <= internal_line_in_r;
+      elsif switch(1) = '1' then
         hphone_l <= line_in_l;
         hphone_r <= line_in_r;
+      else
+        hphone_l <= (others => '0');
+        hphone_r <= (others => '0');
       end if;
     end if;
   end process;

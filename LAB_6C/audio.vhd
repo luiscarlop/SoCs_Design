@@ -10,6 +10,9 @@ library unisim;
 use unisim.vcomponents.all;
 
 entity audio is
+  generic (
+    SIMULATION : boolean := false
+  );
   port (
     clk_100_in : in std_logic;
     AC_ADR0    : out std_logic;
@@ -137,7 +140,7 @@ begin
     end if;
   end process;
 
-  transition_process : process (state, record_pressed, play_pause, has_data)
+  transition_process : process (state, record_pressed, play_pause, has_data, play_event)
   begin
     case state is
       when IDLE =>
@@ -189,7 +192,7 @@ begin
     clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
-    dina  => line_in_l,
+    dina  => line_in_l(8 downto 0) & "0000000",
     clkb  => clk_48MHz,
     addrb => addrb,
     doutb => internal_line_in_l
@@ -201,7 +204,7 @@ begin
     clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
-    dina  => line_in_r,
+    dina  => line_in_r(8 downto 0) & "0000000",
     clkb  => clk_48MHz,
     addrb => addrb,
     doutb => internal_line_in_r
@@ -259,62 +262,69 @@ begin
     output => pitch_down_event
   );
 
-  Module_MMCM : MMCME2_BASE
-  generic map(
-    BANDWIDTH        => "OPTIMIZED",
-    CLKFBOUT_MULT_F  => 12.0, -- VCO = 100MHz * 12 = 1200 MHz
-    CLKFBOUT_PHASE   => 0.0,
-    CLKIN1_PERIOD    => 10.0,
-    CLKOUT0_DIVIDE_F => 25.0, -- 1200 MHz / 25 = 48 MHz
-    CLKOUT0_PHASE    => 0.0,
+  gen_hardware_clock : if not SIMULATION generate
+    Module_MMCM : MMCME2_BASE
+    generic map(
+      BANDWIDTH        => "OPTIMIZED",
+      CLKFBOUT_MULT_F  => 12.0, -- VCO = 100MHz * 12 = 1200 MHz
+      CLKFBOUT_PHASE   => 0.0,
+      CLKIN1_PERIOD    => 10.0,
+      CLKOUT0_DIVIDE_F => 25.0, -- 1200 MHz / 25 = 48 MHz
+      CLKOUT0_PHASE    => 0.0,
 
-    CLKOUT4_CASCADE => FALSE,
-    DIVCLK_DIVIDE   => 1,
-    REF_JITTER1     => 0.0,
-    STARTUP_WAIT    => FALSE
-  )
-  port map
-  (
-    CLKOUT0   => CLKOUT0,
-    CLKOUT0B  => open,
-    CLKOUT1   => open,
-    CLKOUT1B  => open,
-    CLKOUT2   => open,
-    CLKOUT2B  => open,
-    CLKOUT3   => open,
-    CLKOUT3B  => open,
-    CLKOUT4   => open,
-    CLKOUT5   => open,
-    CLKOUT6   => open,
-    CLKFBOUT  => CLKFBOUT,
-    CLKFBOUTB => open,
-    LOCKED    => open,
-    CLKIN1    => CLKIN1,
-    PWRDWN    => '0',
-    RST       => reset,
-    CLKFBIN   => CLKFBIN
-  );
+      CLKOUT4_CASCADE => FALSE,
+      DIVCLK_DIVIDE   => 1,
+      REF_JITTER1     => 0.0,
+      STARTUP_WAIT    => FALSE
+    )
+    port map
+    (
+      CLKOUT0   => CLKOUT0,
+      CLKOUT0B  => open,
+      CLKOUT1   => open,
+      CLKOUT1B  => open,
+      CLKOUT2   => open,
+      CLKOUT2B  => open,
+      CLKOUT3   => open,
+      CLKOUT3B  => open,
+      CLKOUT4   => open,
+      CLKOUT5   => open,
+      CLKOUT6   => open,
+      CLKFBOUT  => CLKFBOUT,
+      CLKFBOUTB => open,
+      LOCKED    => open,
+      CLKIN1    => CLKIN1,
+      PWRDWN    => '0',
+      RST       => reset,
+      CLKFBIN   => CLKFBIN
+    );
 
-  IBUFG_inst : IBUFG
-  port map
-  (
-    O => CLKIN1,
-    I => clk_100_in
-  );
+    IBUFG_inst : IBUFG
+    port map
+    (
+      O => CLKIN1,
+      I => clk_100_in
+    );
 
-  BUFG_inst_clkout0 : BUFG
-  port map
-  (
-    O => clk_48MHz,
-    I => CLKOUT0
-  );
+    BUFG_inst_clkout0 : BUFG
+    port map
+    (
+      O => clk_48MHz,
+      I => CLKOUT0
+    );
 
-  BUFG_inst_clkfbout : BUFG
-  port map
-  (
-    O => CLKFBIN,
-    I => CLKFBOUT
-  );
+    BUFG_inst_clkfbout : BUFG
+    port map
+    (
+      O => CLKFBIN,
+      I => CLKFBOUT
+    );
+  end generate;
+
+  -- Simulation clock for testbench
+  gen_simulation_clock : if SIMULATION generate
+    clk_48MHz <= clk_100_in;
+  end generate;
 
   -------------------------------------------------------------
   --              			PROCESS
@@ -325,10 +335,10 @@ begin
     if reset = '1' then
       play_pause <= '0';
     elsif clk_48MHz'event and clk_48MHz = '1' then
-      if state = IDLE then
-        play_pause <= '0'; -- Reset play_pause when returning to IDLE
-      elsif play_event = '1' then
+      if play_event = '1' then
         play_pause <= not play_pause;
+      elsif state = IDLE then
+        play_pause <= '0'; -- Reset play_pause when returning to IDLE
       end if;
     end if;
   end process;
@@ -500,8 +510,8 @@ begin
         hphone_l <= internal_line_in_l;
         hphone_r <= internal_line_in_r;
       elsif switch(1) = '1' then
-        hphone_l <= line_in_l;
-        hphone_r <= line_in_r;
+        hphone_l <= line_in_l(8 downto 0) & "0000000";
+        hphone_r <= line_in_r(8 downto 0) & "0000000";
       else
         hphone_l <= (others => '0');
         hphone_r <= (others => '0');

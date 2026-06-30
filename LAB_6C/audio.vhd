@@ -115,7 +115,8 @@ architecture Behavioral of audio is
   signal hphone_l, hphone_r   : std_logic_vector(15 downto 0);
   -------------------------------------------
 
-  signal internal_line_in_l, internal_line_in_r : std_logic_vector(15 downto 0);
+  signal internal_line_in_l, internal_line_in_r,
+  selected_line_in_l, selected_line_in_r : std_logic_vector(15 downto 0);
   signal addra, addrb                         : std_logic_vector(16 downto 0); -- 17 bits for 128k samples
   signal addr_counter_a                       : integer range 0 to 110999 := 0; -- Counter for addressing RAM (111k samples)
   signal addr_counter_b                       : integer range 0 to 110999 := 0; -- Counter for addressing RAM (111k samples)
@@ -126,6 +127,25 @@ architecture Behavioral of audio is
   signal state, next_state : states_t;
 
 begin
+
+  -------------------------------------------
+  -------------- Audio Select ---------------
+  -------------------------------------------
+  process_audio_select : process (clk_48MHz, reset)
+  begin
+    if reset = '1' then
+      selected_line_in_l <= line_in_l;
+      selected_line_in_r <= line_in_r;
+    elsif (clk_48MHz'event and clk_48MHz = '1') then
+      if switch(2) = '1' then
+        selected_line_in_l <= (others => '0');
+        selected_line_in_r <= line_in_r(8 downto 0) & "0000000"; -- Microphone input (mono) to right channel
+      else
+        selected_line_in_l <= line_in_l;
+        selected_line_in_r <= line_in_r;
+      end if;
+    end if;
+  end process;
 
   -------------------------------------------
   ------------------ FSM --------------------
@@ -192,7 +212,7 @@ begin
     clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
-    dina  => line_in_l(8 downto 0) & "0000000",
+    dina  => selected_line_in_l,
     clkb  => clk_48MHz,
     addrb => addrb,
     doutb => internal_line_in_l
@@ -204,7 +224,7 @@ begin
     clka  => clk_48MHz,
     wea   => write_enable,
     addra => addra,
-    dina  => line_in_r(8 downto 0) & "0000000",
+    dina  => selected_line_in_r,
     clkb  => clk_48MHz,
     addrb => addrb,
     doutb => internal_line_in_r
@@ -510,8 +530,8 @@ begin
         hphone_l <= internal_line_in_l;
         hphone_r <= internal_line_in_r;
       elsif switch(1) = '1' then
-        hphone_l <= line_in_l(8 downto 0) & "0000000";
-        hphone_r <= line_in_r(8 downto 0) & "0000000";
+        hphone_l <= selected_line_in_l;
+        hphone_r <= selected_line_in_r;
       else
         hphone_l <= (others => '0');
         hphone_r <= (others => '0');
